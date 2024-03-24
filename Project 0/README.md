@@ -109,198 +109,7 @@ To set up and monitor a WordPress instance for your organisation inside AWS, usi
 
 
 ## Intended Architecture
-```mermaid
-graph TD
-    direction TB
-
-    classDef default color:#000;
-    classDef dns fill:#c2e0c6,stroke:#16a085,line-height:18px;
-    classDef public fill:#9b59b6,stroke:#8e44ad,color:transparent;
-    classDef private fill:#34495e,stroke:#2c3e50,color:transparent;
-    classDef db-subnet-group color:#000,fill:transparent,stroke:#F58536,stroke-width:2px,stroke-dasharray:6;
-    classDef hidden color:#000,fill:transparent,stroke:transparent,padding:0px,margin:0px;
-    classDef acm fill:#FF9900,stroke:#333;
-    classDef afs fill:#F9C202,stroke:#333;
-    classDef ai fill:#54B435,stroke:#333;
-    classDef alb fill:#F58536,stroke:#333;
-    classDef apigateway fill:#00B3F4,stroke:#333;
-    classDef appmesh fill:#005EA5,stroke:#333;
-    classDef apprunner fill:#FF471A,stroke:#333;
-    classDef athena fill:#8F3E9E,stroke:#333;
-    classDef autoscaling fill:#E43A15,stroke:#333;
-    classDef beam fill:#F7931A,stroke:#333;
-    classDef budgets fill:#FFC000,stroke:#333;
-    classDef cloud9 fill:#434343,stroke:#333;
-    classDef cloudformation fill:#8C959E,stroke:#333;
-    classDef cloudfront fill:#F5F5F5,stroke:#333;
-    classDef cloudsearch fill:#54B435,stroke:#333;
-    classDef cloudtrail fill:#999999,stroke:#333;
-    classDef cloudwatch fill:#F58536,stroke:#333;
-    classDef codebuild fill:#4FC08D,stroke:#333;
-    classDef codecommit fill:#F05032,stroke:#333;
-    classDef codedeploy fill:#F7931A,stroke:#333;
-    classDef codepipeline fill:#3333FF,stroke:#333;
-    classDef codestar fill:#F7931A,stroke:#333;
-    classDef cognito fill:#FDB827,stroke:#333;
-    classDef config fill:#F9C202,stroke:#333;
-    classDef curl fill:#000000,stroke:#333;
-    classDef datapipeline fill:#8C959E,stroke:#333;
-    classDef datasync fill:#3D9970,stroke:#333;
-    classDef dax fill:#F58536,stroke:#333;
-    classDef database fill:#3333FF,stroke:#333;
-    classDef dms fill:#8C959E,stroke:#333;
-    classDef docdb fill:#405884,stroke:#333;
-    classDef ds fill:#00B3F4,stroke:#333;
-    classDef dynamodb fill:#405884,stroke:#333;
-    classDef ebs fill:#F9C202,stroke:#333;
-    classDef ec2 fill:transparent,stroke:#333,margin:0px,border:0px,stroke-width:0px,padding:0px;
-    classDef ecs fill:#FF9900,stroke:#333;
-    classDef efs fill:transparent,stroke:#fff;
-    classDef eip fill:#F58536,stroke:#333,line-height:18px;
-    classDef elasticache fill:#3D9970,stroke:#333;
-    classDef elasticbeanstalk fill:#F7931A,stroke:#333;
-    classDef elasticsearch fill:#005EA5,stroke:#333;
-    classDef emr fill:#FDB827,stroke:#333;
-    classDef eks fill:#005EA5,stroke:#333;
-    classDef es fill:#005EA5,stroke:#333;
-    classDef eventbridge fill:#00B3F4,stroke:#333;
-    classDef firehose fill:#F58536,stroke:#333;
-    classDef forecast fill:#00B3F4,stroke:#333;
-    classDef fsx fill:#F58536,stroke:#333;
-    classDef glacier fill:#C0C0C0,stroke:#333;
-    classDef globalaccelerator fill:#F9C202,stroke:#333;
-    classDef guardduty fill:#747F8D,stroke:#333;
-    classDef ig fill:#FF9900,stroke:#333;
-    classDef inspector fill:#FDB827,stroke:#333;
-    classDef iot fill:#405884,stroke:#333;
-    classDef iotanalytics fill:#F9C202,stroke:#333;
-    classDef iotevents fill:#FDB827,stroke:#333;
-    classDef iotthingsgraph fill:#F7931A,stroke:#333;
-    classDef kafka fill:#005EA5,stroke:#333;
-    classDef kinesis fill:#F58536,stroke:#333;
-    classDef kinesisanalytics fill:#F9C202,stroke:#333;
-    classDef kinesisvideo fill:#FDB827,stroke:#333;
-    classDef lakeformation fill:#00B3F4,stroke:#333;
-    classDef lambda fill:#F7931A,stroke:#333;
-    classDef licensemanager fill:#8C959E,stroke:#333;
-    classDef macie fill:#FF471A,stroke:#333;
-    classDef marketplace fill:#405884,stroke:#333;
-    classDef marketplacemetering service:#FDB827,stroke:#333;
-    classDef mediaconnect fill:#F58536,stroke:#333;
-    classDef mediaconvert fill:#00B3F4,stroke:#333;
-    classDef medialive fill:#F9C202,stroke:#333;
-    classDef mediapackage fill:#005EA5,stroke:#333;
-    classDef mediastore fill:#3D9970,stroke:#333;
-    classDef mediastore-data fill:#E43A15,stroke:#333;
-    classDef mediatailor fill:#F58536,stroke:#333;
-    classDef memorydb fill:#005EA5,stroke:#333;
-    classDef migrationhub fill:#8C959E,stroke:#333;
-    classDef mobile fill:#FDB827,stroke:#333;
-    classDef mq fill:#F58536,stroke:#333;
-    classDef neptune fill:#3333FF,stroke:#333;
-    classDef networkmanager fill:#F9C202,stroke:#333;
-    classDef opsworks fill:#F7931A,stroke:#333;
-    classDef opsworkscm fill:#00B3F4,stroke:#333;
-    classDef organizations fill:#8C959E,stroke:#333;
-    classDef qldb fill:#F58536,stroke:#333;
-    classDef quicksight fill:#005EA5,stroke:#333;
-    classDef rds fill:#3333FF,stroke:#333,margin:0px,border:0px,stroke-width:0px,padding:0px;
-    classDef redshift fill:#E43A15,stroke:#333;
-    classDef rekognition fill:#FDB827,stroke:#333;
-    classDef resourcegroups fill:#F9C202,stroke:#333;
-    classDef rds fill:transparent,stroke:#fff;
-    classDef route53 fill:#F58536,stroke:#333;
-    classDef route53domains fill:#00B3F4,stroke:#333;
-    classDef route53resolver fill:#005EA5,stroke:#333;
-    classDef s3 fill:#405884,stroke:#333;
-    classDef s3control fill:#F9C202,stroke:#333;
-    classDef s3outposts fill:#F58536,stroke:#333;
-    classDef sagemaker fill:#F58536,stroke:#333;
-    classDef sagemaker fill:#FDB827,stroke:#333;
-    classDef secretsmanager fill:#F58536,stroke:#333;
-    classDef serverlessapprepo fill:#00B3F4,stroke:#333;
-    classDef servicecatalog fill:#8C959E,stroke:#333;
-    classDef sg fill:transparent,stroke:#FF5733,color:#000;
-    classDef shield fill:#E43A15,stroke:#333;
-    classDef signer fill:#F9C202,stroke:#333;
-    classDef sms fill:#005EA5,stroke:#333;
-    classDef snowball fill:#FDB827,stroke:#333;
-    classDef sso fill:#F58536,stroke:#333;
-    classDef storagegateway fill:#54B435,stroke:#333;
-    classDef sts fill:#999999,stroke:#333;
-    classDef subnet color:#000,fill:#fff,stroke:#F58536,stroke-width:2px,stroke-dasharray:6;
-    classDef support fill:#F9C202,stroke:#333;
-    classDef swf fill:#F7931A,stroke:#333;
-    classDef textract fill:#00B3F4,stroke:#333;
-    classDef transcribe fill:#FDB827,stroke:#333;
-    classDef translate fill:#3D9970,stroke:#333;
-    classDef trebuchet fill:#F58536,stroke:#333;
-    classDef vpc color:#000,fill:#fff,stroke:#F58536,stroke-width:2px,stroke-dasharray:6;
-    classDef workdocs fill:#8C959E,stroke:#333;
-    classDef worklink fill:#E43A15,stroke:#333;
-    classDef workspaces fill:#F9C202,stroke:#333;
-    classDef xray fill:#F7931A,stroke:#333;
-
-
-    subgraph vpc["wordpress-vpc"]
-        direction TB
-
-        ig{"Internet<br>Gateway"}
-        dns["www.mydomain.com"]
-        dns --- eip1
-        dns --- eip2
-        eip1[Elastic IPa] ---> ec21
-        eip2[Elastic IPb] ---> ec22
-
-        subgraph sg-public["Public <br><br><br><br><br><br> Wordpress Frontend"]
-            direction LR
-            subgraph public-us-east-1a["us-east-1a<br><br><br><br>10.101.0.0/24"]
-                ec21["<img class='Icon' src='https://icon.icepanel.io/AWS/svg/Compute/EC2.svg' /> EC2a"]
-            end
-            subgraph public-us-east-1b["us-east-1b<br><br><br><br>10.101.1.0/24"]
-                ec22["<img class='Icon' src='https://icon.icepanel.io/AWS/svg/Compute/EC2.svg' /> EC2b"]
-            end
-        end
-
-        subgraph efs-storage["/mnt/efs/data"]
-            efs["<img class='Icon' src='https://icon.icepanel.io/AWS/svg/Storage/EFS.svg' /> EFS"]
-        end
-        subgraph sg-private["Private <br><br><br><br><br><br><br> MySQL Backend"]
-            subgraph db-subnet-group["db-subnet-group"]
-                direction TB
-                subgraph private-us-east-1a["us-east-1a<br><br><br><br>10.101.2.0/24"]
-                    rds1["<img class='Icon' src='https://icon.icepanel.io/AWS/svg/Database/RDS.svg' /> RDSa"]
-                end
-                subgraph private-us-east-1b["us-east-1b<br><br><br><br>10.101.3.0/24"]
-                    rds2["<img class='Icon' src='https://icon.icepanel.io/AWS/svg/Database/RDS.svg' /> RDSb"]
-                end
-            end
-        end
-
-    end
-
-    ig ----- sg-public
-    ec21 ---- rds1
-    ec21 -.- rds2
-    ec22 ---- rds1
-    ec22 -.- rds2
-
-
-    ec21 --- efs
-    ec22 --- efs
-    class ig ig;
-    class dns dns;
-    class eip1,eip2 eip;
-    class ec21,ec22 ec2;
-    class efs efs;
-    class efs-storage hidden;
-    class rds1,rds2 rds;
-    class public-us-east-1a,public-us-east-1b subnet;
-    class private-us-east-1a,private-us-east-1b subnet;
-    class db-subnet-group db-subnet-group;
-    class sg-private,sg-public sg;
-    class vpc vpc;
-```
+[![](https://mermaid.ink/img/pako:eNrVWnuPozgS_yqI-TekCZDn7o7Ur5xGmpVmp1da6bZXLWM7xApgxjZJZ0bz3a_MKyFJgzPaO90SdQvsKtv1-FWVDd9szAm1F3YkULa2fn94Ti24CBMUK8ZT6_e757RswzGS8oGuLEJXKI-VhXnMxeKd67oDqQTf0IUSKJUZEjRVP50woa81_djVv8GKxfExQz3GO0zIOETVo7NjRK0XXvZaNxAk10gItF9MTucgqbSKYd9hj7p40gw5miB3Nh7ELKXOmrJorRajWfZ6yp_lYcxwNcQ8HM_DwxAzGgSIDEoZOuTMBNsiRatB_CCYj2kziId9CqL3DkJCGR2r901dLcezsT_5EV2tGSE0NZnkuClDhLA0WrgwR4JExFJ9e2ZrnFTyL5fz-cE93vm-f0a7qm22nN97rtdJyyrScXAX-ONO0jishz1W0WXajEVgsh3aVyyue-cvg26WLKFy3dCPH2_HPfQiT1MqGr0E09FtJ4da0xRV5LOl_zh_7CTPFZcYgYdHFc9j4N-OOhcVUtTYaTr3u9cT5iSiqrHV8t7ttiuOeU7mFXng618v-YqLBBVRpxL7fj7uFrtkEzxVjbX1r5dFUiTw2tibCh7AAYvr4FBcvSw7pJpZ-v1QR-IwZzGptQZKnj30cWCeJKwRHyKr7_WxEJrFfG9ses2SsYzq8FnHNbiWyz4mqZC4YpYoZYrX9A93M2_aTZ-uWGQcO3Au4gaubo_zEqTQicT9vqiZ5D6t84f_MJ9Pe2Z5NfYNPXiIpLn-SSLNV84xqcNl4I5ns87YR6RxmCT7FCX8irFpaJ4NKPasNxMj0B8lqEHIBaGiuG3lSt1wlNPOp5DGiYzWiezSclar1Rk9yyyDlHvGBjeKYYTX1NjRKh6I9ylAMt4YY7JibEXL_mRHE2GMYrqR5uNeQboF1YWCQc4ydtYV1Lxr3kCsH5OQrigGBZnPIM0BH8UIs6ZeuHf1r5uehwh4MI2pQIoLYxxFORKE5KpOCNNguuxOO3XYvc5zGXTApoKbOwfjyjhyAC1KUbzX7mosOjAVniKvWZJaQ7SQ5X7JFEgbtNogY-_dQNqRTBr7SkV_vfwV45YRap54Y7Shp5Vav-_HKAkJMlYY7MNoKmkCMkUNCvozWaJBY1xjQ4LYUJUBaqixnx3xJFRRoQtuScUW1muivIQShqB0SQEJxvatmbZUmAebgilmW2rsDQVHhvAGHUXNPl8tmCSg2jwdHVgcXdYY71cKPgVF-CGEGKgu4WLfVCAG8jBAtvbsdR6aux0PWUyNEZR8MV5_SjOVX1F2p1TtuNi0cdNvep5JzSaN8VkzNDv9fofkIkIp-1oo17w2_RIT8538l5zhjdTnO8b2Fk05e67cv6GCFJTINVspYycXdFNshA6xtd-fBJU8F5hGgueZefRvRDesWGF0Rce-sTUqesITxFLzTUPFpoWKt40P91tS-sZBXPoQTaE7NtaV9GFVGZfKPCtLQGACuVL8OEev5SXFgip5Avf-iSBhURFTKfXBFM24sXGqVIchDsc8MkaxfLtihDw9ngLWDieRZ8xrRptDkX4EAf7TK0KfTMy3FTLlO6iyY3P7SG5uFMiIYMX2UWT_2dTBJfsPpWQeQoKwVjFHagEFFtQvg9MTYI38v-F8WeZZxptyxcAMu5Vx8lH0FRwJm9dChdthwULzHF2wxEcn-b1ljRI0zGFbbl7XbTNsdap_hoPViv6I-nVyJhyb51nNELN0YwyzIv1DtUjNE86rQJ2njiU5OGm5uQL1_PlswzwEYpSUDjw_23-VRG-9pNIXi4DtZ5ZAYS7wL8_2WqlMLm5uJKiL0mHEFNR2Q8Zv0E46chs5DLKBvLkVeM0UjJhDYfpUxjnng-56cae-C7KNCpqXpxKoN8GsfL7948mp2px_leh9CWZDGPnZBnjuY6oXUb52CorXTrZ18_6DRh-g8edQvK-42tKlUku_2w2TfZlCh5gnpySW4zj6KGl0sdU7tGqaP69XyueqtDhVBLS_3PMkg1Rd3Aezl49awOLhNkFfeeo83nsvj-UJkvPhk3NLiDZjQ9qnoIrV-vAJ_aUFeq9P_EYtibx_qkThQSLv2HUb35eRU76NBB_4VL6W1I5y6c_6o0aItdRvQmhKWl7ShsrHz-2eZsZyOieXDoVVOiMEMx8eTicducOROxq6Q_fGC86mK8wDxvrv4rC21iSocHgw0iTotcW9h87WrVVnpp3wWDvhG9oZdWrH-__WTtitneLhguPSFay2DIYg302SqhtoutEb_fMBV_J_E6lPdVBBeAmbdudpLxVNDHRiPS6fWiK09NFCbvkNgIZu9TXAW9gt8Pvr_um3j9YdwptL0G0GJqFT1m9Osc-D0U9aLjpaO0me9h78u1zolfD33nZwfcEG88dCQFeMfqjehL0ZpG9zAVavnz4_PDkf9GuPFFPjQG0BF7qM29MI0a1FozDh92rR-8dqMTTT4luh5eiWRTplQl3TpMaKBPJM0VO423HbsGjymibvApl3RNZMWo2o41Ob-dBS1LR6TSw6rnKL4gv-Wm269BroakXftXtgpkExOPxr96yKv9O2OrRWn--0urVcAy2Jvmv1nKX2wVk6q7aGbbazmDA4d_BLjCdxqficqUVwiJGDxprWCY3eHMEftNkDO6ECKmBiL-xv1rMN-9cdhp2PerYXlm7AudhS_fBsQzDPHnJ9LA8--P078OpPY572KbYXSuR0YOcZJCP6wBBgNrEXKxRLaM1Q-m_Ok5oIHu3FN_vVXozc6XDuzkf6q7WZNwqm44G9txeT4XQymbsT13eDYB6MvO8D-2sxAGT94vL8WTCajafzgU0JA7v9Wn5pV3xw9_0_C2aIkg?type=png)](https://mermaid.live/edit#pako:eNrVWnuPozgS_yqI-TekCZDn7o7Ur5xGmpVmp1da6bZXLWM7xApgxjZJZ0bz3a_MKyFJgzPaO90SdQvsKtv1-FWVDd9szAm1F3YkULa2fn94Ti24CBMUK8ZT6_e757RswzGS8oGuLEJXKI-VhXnMxeKd67oDqQTf0IUSKJUZEjRVP50woa81_djVv8GKxfExQz3GO0zIOETVo7NjRK0XXvZaNxAk10gItF9MTucgqbSKYd9hj7p40gw5miB3Nh7ELKXOmrJorRajWfZ6yp_lYcxwNcQ8HM_DwxAzGgSIDEoZOuTMBNsiRatB_CCYj2kziId9CqL3DkJCGR2r901dLcezsT_5EV2tGSE0NZnkuClDhLA0WrgwR4JExFJ9e2ZrnFTyL5fz-cE93vm-f0a7qm22nN97rtdJyyrScXAX-ONO0jishz1W0WXajEVgsh3aVyyue-cvg26WLKFy3dCPH2_HPfQiT1MqGr0E09FtJ4da0xRV5LOl_zh_7CTPFZcYgYdHFc9j4N-OOhcVUtTYaTr3u9cT5iSiqrHV8t7ttiuOeU7mFXng618v-YqLBBVRpxL7fj7uFrtkEzxVjbX1r5dFUiTw2tibCh7AAYvr4FBcvSw7pJpZ-v1QR-IwZzGptQZKnj30cWCeJKwRHyKr7_WxEJrFfG9ses2SsYzq8FnHNbiWyz4mqZC4YpYoZYrX9A93M2_aTZ-uWGQcO3Au4gaubo_zEqTQicT9vqiZ5D6t84f_MJ9Pe2Z5NfYNPXiIpLn-SSLNV84xqcNl4I5ns87YR6RxmCT7FCX8irFpaJ4NKPasNxMj0B8lqEHIBaGiuG3lSt1wlNPOp5DGiYzWiezSclar1Rk9yyyDlHvGBjeKYYTX1NjRKh6I9ylAMt4YY7JibEXL_mRHE2GMYrqR5uNeQboF1YWCQc4ydtYV1Lxr3kCsH5OQrigGBZnPIM0BH8UIs6ZeuHf1r5uehwh4MI2pQIoLYxxFORKE5KpOCNNguuxOO3XYvc5zGXTApoKbOwfjyjhyAC1KUbzX7mosOjAVniKvWZJaQ7SQ5X7JFEgbtNogY-_dQNqRTBr7SkV_vfwV45YRap54Y7Shp5Vav-_HKAkJMlYY7MNoKmkCMkUNCvozWaJBY1xjQ4LYUJUBaqixnx3xJFRRoQtuScUW1muivIQShqB0SQEJxvatmbZUmAebgilmW2rsDQVHhvAGHUXNPl8tmCSg2jwdHVgcXdYY71cKPgVF-CGEGKgu4WLfVCAG8jBAtvbsdR6aux0PWUyNEZR8MV5_SjOVX1F2p1TtuNi0cdNvep5JzSaN8VkzNDv9fofkIkIp-1oo17w2_RIT8538l5zhjdTnO8b2Fk05e67cv6GCFJTINVspYycXdFNshA6xtd-fBJU8F5hGgueZefRvRDesWGF0Rce-sTUqesITxFLzTUPFpoWKt40P91tS-sZBXPoQTaE7NtaV9GFVGZfKPCtLQGACuVL8OEev5SXFgip5Avf-iSBhURFTKfXBFM24sXGqVIchDsc8MkaxfLtihDw9ngLWDieRZ8xrRptDkX4EAf7TK0KfTMy3FTLlO6iyY3P7SG5uFMiIYMX2UWT_2dTBJfsPpWQeQoKwVjFHagEFFtQvg9MTYI38v-F8WeZZxptyxcAMu5Vx8lH0FRwJm9dChdthwULzHF2wxEcn-b1ljRI0zGFbbl7XbTNsdap_hoPViv6I-nVyJhyb51nNELN0YwyzIv1DtUjNE86rQJ2njiU5OGm5uQL1_PlswzwEYpSUDjw_23-VRG-9pNIXi4DtZ5ZAYS7wL8_2WqlMLm5uJKiL0mHEFNR2Q8Zv0E46chs5DLKBvLkVeM0UjJhDYfpUxjnng-56cae-C7KNCpqXpxKoN8GsfL7948mp2px_leh9CWZDGPnZBnjuY6oXUb52CorXTrZ18_6DRh-g8edQvK-42tKlUku_2w2TfZlCh5gnpySW4zj6KGl0sdU7tGqaP69XyueqtDhVBLS_3PMkg1Rd3Aezl49awOLhNkFfeeo83nsvj-UJkvPhk3NLiDZjQ9qnoIrV-vAJ_aUFeq9P_EYtibx_qkThQSLv2HUb35eRU76NBB_4VL6W1I5y6c_6o0aItdRvQmhKWl7ShsrHz-2eZsZyOieXDoVVOiMEMx8eTicducOROxq6Q_fGC86mK8wDxvrv4rC21iSocHgw0iTotcW9h87WrVVnpp3wWDvhG9oZdWrH-__WTtitneLhguPSFay2DIYg302SqhtoutEb_fMBV_J_E6lPdVBBeAmbdudpLxVNDHRiPS6fWiK09NFCbvkNgIZu9TXAW9gt8Pvr_um3j9YdwptL0G0GJqFT1m9Osc-D0U9aLjpaO0me9h78u1zolfD33nZwfcEG88dCQFeMfqjehL0ZpG9zAVavnz4_PDkf9GuPFFPjQG0BF7qM29MI0a1FozDh92rR-8dqMTTT4luh5eiWRTplQl3TpMaKBPJM0VO423HbsGjymibvApl3RNZMWo2o41Ob-dBS1LR6TSw6rnKL4gv-Wm269BroakXftXtgpkExOPxr96yKv9O2OrRWn--0urVcAy2Jvmv1nKX2wVk6q7aGbbazmDA4d_BLjCdxqficqUVwiJGDxprWCY3eHMEftNkDO6ECKmBiL-xv1rMN-9cdhp2PerYXlm7AudhS_fBsQzDPHnJ9LA8--P078OpPY572KbYXSuR0YOcZJCP6wBBgNrEXKxRLaM1Q-m_Ok5oIHu3FN_vVXozc6XDuzkf6q7WZNwqm44G9txeT4XQymbsT13eDYB6MvO8D-2sxAGT94vL8WTCajafzgU0JA7v9Wn5pV3xw9_0_C2aIkg)
 
 
 ## Tasklist
@@ -308,18 +117,20 @@ graph TD
 2. Create Key Pairs
 3. Create the Security Groups, ensure these are attached to the respective subnets
 4. Create a Internet Gateway (if not included with the VPC)
-5. Create an RDS Cluster, with multi-az, and two subnets in the db-subnet-group, include 1x database called `wordpress`. Configure Cluster scaling, so we always have a replica
-6. Create an Elastic File System
+5. Create an RDS Cluster, with instances in each-az, and two subnets in the db-subnet-group, include 1x database called `wordpress`. Configure Cluster scaling, so we always have a replica
+6. Create an Elastic File System, configure an archive policy.
 7. Create 1x EC2 instance, with Ubuntu on, dev/test, containers, select vpc, select/create SG, select EFS (/mnt/sfs/data)   
 8. SSH in and configure the VM for Apache/Nginx, PHP
 9. Connect to RDS, and create a `wordpress` database, with a admin credential.
    Create another `wordpress` user and grant access to the `wordpress` database and schema.
-
-10. Connect to the EC2 Instance, and prepare the OS for Apache, with PHP
-11. Download the `latest` instance of wordpress, extract and copy to /var/www/html folder.
-12. Configure a `wp-config.php` file with the necessary database-connection-string
-13. Start the web-service, and register the web-service to run on machine start-up
-14. Export the SSH history using `history` command
+10. Install Apache, Download and Extract Wordpress, and Configure them both
+11. Configure a `wp-config.php` file with the necessary database-connection-string; including starting the web-service, and register the web-service to run on machine start-up
+12. Conver the EC2 Instance to an AIM disk-image
+13. Deploy 2 copies of this template, into each public-facing subnet
+14. Configure Route53 Health Checks, against each public IP 0 confirm the state of each health check
+15. Demonstrate availability of each ec2 instance, inline with the health check
+16. Setup a Route53 Traffic Flow policy, to distribute the web traffic to the live/healthy nodes
+17. Use AWS Instance Scheduler to STOP both instances after 11:30pm;and start again at 9:00am
 
 ## Step-by-step Instructions (using terraform)
 The terraform instructions can be found [here](<./Method 0 - terraform/README.md>)
@@ -327,3 +138,75 @@ The terraform instructions can be found [here](<./Method 0 - terraform/README.md
 ## Step-by-step Instructions (aws console)
 The terraform instructions can be found [here](<./Method 1 - aws console/README.md>)
 
+
+
+## Challange an engineer, question time:
+1. What is the primary goal or objective of deploying this infrastructure on AWS?
+
+    The purpose is a hosted platform, potentially demonstrating a real-world scenario, and giving practical experiences to deploying a highly-available platform in a lab, ahead of having to do similar infront of a customer, under tight project deadlines.
+
+2. How do you plan to handle scalability and performance requirements for the deployed resources?
+
+    The RDS cluster will scale, using a scaling configuration, and the EC2 frontend instance, will be templated, and multiple frontends will be deployed.
+    It's entirely possible to attach a cloud-formation routine to scale-up/down based on customer load; this requires a elastic-load-balancer. This is potentially out of scope of this project, as we are using dns to deliver traffic to the active frontend.
+
+3.  What security measures are implemented in the infrastructure setup, especially regarding access controls and data encryption?
+
+    Disk encryption is enabled; i've opted for a http connection to the web-frontend, purely for the demonstration of the service-ha. Having delivered highly secure web-services in my working career, with ssl certificates and web-server hardning techniques, i'm comfortable i could secure this platform if needed. I very much doubt that the security-stance is part of the measurable-objective of this course.
+
+4. How do you intend to monitor the health and performance of the deployed resources, and what logging mechanisms are in place for troubleshooting?
+
+    The initial availability monitoring will be provided using Route53 Health Checks.  SNS could be used for alerting, but won't be necessary for a lab exercise that only lives for up to 6 hours.
+
+    In a real-world scenario it would be advisable to also include end-to-end product health monitoring, using cloud-watch, and ensure a clean audit history of changes, using cloud-trail. Web-server logs should be sent to an S3 bucket, with a retention/archive policy meeting compliance expectations.
+
+5. Have you considered cost optimization strategies, such as leveraging AWS cost management tools or using reserved instances for cost savings?
+
+    For the purpose of keeping costs low; i've opted for a serverless backend and low-spec ec2 instances for the frontend. All the bells and whistles (such as an rds proxy, or load balancer, ssl certificate manager, or ec2 compute scale-set) all seem unnecessary for a small wordpress website. 
+
+    Cost-budgets are available and can be applied at the organisation level.
+
+6. What strategies are in place for disaster recovery and data backup in case of unexpected incidents or failures?
+
+    The MySQL DB is backed up daily, and able to be interactively restored/downloaded for alternative restore options.
+    The EC2 instance configuration should be entirely on the Elastic File Storage mount-point.  A simply backup policy can be applied here, with a retention to clone files to an S3 bucket for longer-term storage if necessary. For now this is out of scope.
+
+7. Are there any specific compliance requirements or regulations that the infrastructure setup needs to adhere to?
+
+    Outlined in the course project task, this is not defined.  Having worked in industry where this is highly regulated, and changes all the time, i'm used to having a ticket-driven series of itterative changes/adjustments, which is the primary reason for choosing terraform, and for reducing repetative code-blocks.
+
+8. To what extent is automation utilised in managing and deploying the infrastructure, and are there plans to further automate operational tasks?
+
+    No plans to continue with this code beyond the submission of the coursework; however if someone wants to contribute, or provide feedback, i'd be willing to listen and support queries.
+
+9. How is collaboration handled among team members for managing the Terraform codebase, especially in terms of version control and code review processes?
+
+    All this terraform code is my own work. no team members contributed towards the project, code, solution design nor writeup.
+
+10. Are there any planned enhancements or updates for the infrastructure setup, and how do you prioritize and manage these changes over time?
+
+    It may be possible to fork this work for future customer engagements. but i'd personally like to consider the same project variable (tfvars) and scale the project code to support multi-cloud platform. Although i doubt time will allow for this.
+
+11. Can you elaborate on the rationale behind choosing to deploy your own VPC with subnets instead of using the default VPC provided by AWS?
+
+    Yes, quite simply i wanted a clearly defined set of subnets, with custom route-tables. It's not necessary, but it's a good practice to encorporate ALL the code for the entire infrastructure design in one place. I could have used a `data "aws_vpc"` item, but i would still be creating more subnets, subnet groups, security groups, route-tables, nat-gateways etc. didn't seem like much of a challange.
+
+12. How do you plan to handle the setup and configuration of Nginx on the EC2 instances, especially considering the use of user_data scripts for automation?
+    
+    Initially, via SSH, ensuring all commands work. Then through user_data scripts, with variable substitution with terraform, then additional configuration performed with terraform null_reference remote-exec commands.
+
+13. Could you explain the reasoning behind the decision not to use Elastic Load Balancers (ELB) and instead rely on Route 53 Health Checks for routing traffic to the active frontend?
+
+    Yes, the project document privided by simplilearn clearly states to use route53 health checks. Implying that UP/DOWN event is the control point for a DNS query. Achievable with a simple route53 traffic-flow policy.
+
+14. In terms of security, what measures are in place to ensure secure communication between the EC2 instances and the RDS database, particularly regarding network access controls?
+
+    Private ip routing. Security Groups acting as a layer-5 firewall (allowing tcp/3306 only). and of course authentication into the mysql instance. Authentication details are passed in a TLS session with the aurora mysql  instance too.
+
+15. How do you intend to manage and update the WordPress instances, including applying patches and updates to ensure security and stability?
+
+    I was considering updating the installation of wordpress using terraform based null_reference remote-exec shell scripting to simply download, extract and copy to the elastic-file-share. Then all EC2 instances will instantly be able to use the same copy of the php code.
+
+    As for plugins, that must be performed inside the wordpress/wp-admin area.
+
+    Database environments can be upgraded, and the maintenance window will perform those upgrade operations.  Automatic minor-verion-updates is enabled.

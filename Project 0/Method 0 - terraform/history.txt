@@ -1,0 +1,199 @@
+history
+    1  sudo yum update -y
+    2  sudo apt-get update -y
+    3  sudo apt-get install -y apache2 php8.2 php8.2-mysqlnd
+    4  sudo apt-get search php
+    5  sudo apt-get search 
+    6  sudo apt-get search mysql
+    7  apt 
+    8  apt search mysql
+    9  apt search mysql | grep /
+   10  apt search pho
+   11  apt search php
+   12  apt search php8
+   13  sudo apt install php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip
+   14  sudo apt install-y  php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip
+   15  sudo apt install -y php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip
+   16  cat > /etc/apache2/sites-available/wordpress.conf<<EOL
+   17  <VirtualHost *:80>
+   18     ServerName www.{{ DOMAINNAME }}
+   19     ServerAlias {{ DOMAINNAME }}
+   20     RewriteEngine On
+   21     RewriteCond %{SERVER_PORT} 80
+   22     RewriteRule ^(.*)$ https://www.{{ DOMAINNAME }}$1 [R=301,L]
+   23     CustomLog /var/log/httpd/www.{{ DOMAINNAME }}_access_log combined
+   24     ErrorLog /var/log/httpd/www.{{ DOMAINNAME }}_error_log
+   25  </VirtualHost>
+   26  <VirtualHost *:443>
+   27      ServerName www.{{ DOMAINNAME }}
+   28      ServerAlias {{ DOMAINNAME }}
+   29      SSLEngine on
+   30      SSLCertificateFile /etc/letsencrypt/live/{{ DOMAINNAME }}/cert.pem
+   31      SSLCertificateKeyFile /etc/letsencrypt/live/{{ DOMAINNAME }}/privkey.pem
+   32      SSLCertificateChainFile /etc/letsencrypt/live/{{ DOMAINNAME }}/chain.pem
+   33      DocumentRoot /var/www/www.{{ DOMAINNAME }}/wordpress
+   34      CustomLog /var/log/httpd/www.{{ DOMAINNAME }}_access_log combined
+   35      ErrorLog /var/log/httpd/www.{{ DOMAINNAME }}_error_log
+   36      Protocols h2 h2c http/1.1
+   37      ProxyPassMatch ^/(.*\.php(/.*)?)$ unix://var/run/php-fpm/www.{{ DOMAINNAME }}.sock|fcgi://127.0.0.1:9000/var/www/www.{{ DOMAINNAME }}/wordpress timeout=300
+   38      <Directory /var/www/www.{{ DOMAINNAME }}>
+   39         AllowOverride All
+   40      </Directory>
+   41  </VirtualHost>
+   42  EOL
+   43  sudo apt-get install --yes --force apache2
+   44  sudo apt-get install -y apache2
+   45  sudo systemctl status apache2
+   46  sudo wget --progress=bar:force:noscroll https://wordpress.org/latest.tar.gz
+   47  sudo tar -xzf latest.tar.gz 
+   48  ls -l /var/www
+   49  sudo cp -r ./wordpress/* /var/www/html/
+   50  sudo ls -l ./
+   51  sudo ls -l ./wordpress/
+   52  sudo ls -l /var/www/html/
+   53  sudo rm -rf ./wordpress ./latest.tar.gz
+   54  cd /var/www/html/
+   55  # compiling a new wp-config.php file
+   56  touch prep
+   57  echo "<?php" > prep
+   58  echo "# Load envvars upon startup, same as docker .ENV mechanism" >>  prep
+   59  echo "$env = file_get_contents(\"/etc/profile.d/envvars.sh\");" >>  prep
+   60  echo "$lines = explode(\"\n\",$env);" >>  prep
+   61  echo "foreach($lines as $line){" >>  prep
+   62  echo "  preg_match(\"/([^#]+)\=(.*)/\",$line,$matches);" >>  prep
+   63  echo "  if(isset($matches[2])){" >>  prep
+   64  echo "    putenv(trim($line));" >>  prep
+   65  echo "  }" >>  prep
+   66  echo "}" >>  prep
+   67  echo "/** TABLE PREFIX */" >> prep
+   68  echo "\$table_prefix = 'wp_';" >> prep
+   69  echo "/** DB PARAMS */" >> prep
+   70  echo "\$vars = array('DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_CHARSET', 'DB_COLLATE');" >> prep
+   71  echo "foreach (\$vars as \$var) { define( \$var, getenv(\$var) ); }" >> prep
+   72  echo "/** WP PARAMS */" >> prep
+   73  echo "\$vars = array('WP_DEBUG', 'WP_HOME', 'WP_SITEURL');" >> prep
+   74  echo "foreach (\$vars as \$var) { define( \$var, getenv(\$var) ); }" >> prep
+   75  echo "/** TABLE PREFIX */" >> head
+   76  curl https://api.wordpress.org/secret-key/1.1/salt/ -o salts
+   77  touch foot
+   78  echo "/** WP-SETTINGS **/" > foot
+   79  echo "if ( ! defined( 'ABSPATH' ) ) {" >> foot
+   80  echo "        define( 'ABSPATH', __DIR__ . '/' );" >> foot
+   81  echo "}" >> foot
+   82  echo "require_once ABSPATH . 'wp-settings.php';" >> foot
+   83  cat prep salts foot > wp-config.php
+   84  rm -rf prep salts foot
+   85  ls -l /var/www/
+   86  sudo chown -R ubuntu:www-data /var/www
+   87  ls -l /var/www
+   88  cd /var/www/html/
+   89  # compiling a new wp-config.php file
+   90  touch prep
+   91  echo "<?php" > prep
+   92  echo "# Load envvars upon startup, same as docker .ENV mechanism" >>  prep
+   93  echo "$env = file_get_contents(\"/etc/profile.d/envvars.sh\");" >>  prep
+   94  echo "$lines = explode(\"\n\",$env);" >>  prep
+   95  echo "foreach($lines as $line){" >>  prep
+   96  echo "  preg_match(\"/([^#]+)\=(.*)/\",$line,$matches);" >>  prep
+   97  echo "  if(isset($matches[2])){" >>  prep
+   98  echo "    putenv(trim($line));" >>  prep
+   99  echo "  }" >>  prep
+  100  echo "}" >>  prep
+  101  echo "/** TABLE PREFIX */" >> prep
+  102  echo "\$table_prefix = 'wp_';" >> prep
+  103  echo "/** DB PARAMS */" >> prep
+  104  echo "\$vars = array('DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_CHARSET', 'DB_COLLATE');" >> prep
+  105  echo "foreach (\$vars as \$var) { define( \$var, getenv(\$var) ); }" >> prep
+  106  echo "/** WP PARAMS */" >> prep
+  107  echo "\$vars = array('WP_DEBUG', 'WP_HOME', 'WP_SITEURL');" >> prep
+  108  echo "foreach (\$vars as \$var) { define( \$var, getenv(\$var) ); }" >> prep
+  109  echo "/** TABLE PREFIX */" >> head
+  110  curl https://api.wordpress.org/secret-key/1.1/salt/ -o salts
+  111  touch foot
+  112  echo "/** WP-SETTINGS **/" > foot
+  113  echo "if ( ! defined( 'ABSPATH' ) ) {" >> foot
+  114  echo "        define( 'ABSPATH', __DIR__ . '/' );" >> foot
+  115  echo "}" >> foot
+  116  echo "require_once ABSPATH . 'wp-settings.php';" >> foot
+  117  cat prep salts foot > wp-config.php
+  118  rm -rf prep salts foot
+  119  ls -l 
+  120  cat wp-config.php 
+  121  echo "<?php phpinfo(); ?>" > /var/www/html/phpinfo.php
+  122  sudo apt install --yes --force php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip
+  123  sudo apt install -silent php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip
+  124  sudo apt install -y php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip
+  125  sudo apt install --yes php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip
+  126  sudo dpkg --configure -a
+  127  sudo apt install --yes php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip
+  128  sudo systemctl restart apache2
+  129  sudo apt install php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip
+  130  sudo nano /etc/apache2/sites-available/wordpress.conf
+  131  sudo apt install php
+  132  sudo rm ./index.html
+  133  sudo /etc/apache2/sites-* -R
+  134  sudo ls -lR /etc/apache2/sites-*
+  135  sudo a2dissite 000-default
+  136  sudo vi /etc/apache2/sites-avaialble/wordpress.conf
+  137  sudo echo "test" > /etc/apache2/sites-available/wordpress.conf
+  138  sudo echo "test" > sudo /etc/apache2/sites-available/wordpress.conf
+  139  sudo ls -lR /etc/apache2/sites-*
+  140  sudo chmod -R 664 /etc/apache2/sites-available/
+  141  sudo vi /etc/apache2/sites-avaialble/wordpress.conf
+  142  sudo ls -lR /etc/apache2/sites-*
+  143  sudo a2enmod rewrite
+  144  passwd /?
+  145  passwd --help
+  146  passwd root
+  147  sudo passwd root
+  148  su -i
+  149  su -i root
+  150  su root
+  151  sudo systemctl restart apache2
+  152  sudo apache2ctl configtest
+  153  sudo ls -l /etc/apache2/sites-enabled
+  154  sudo ls -l /etc/apache2/sites-available
+  155  sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/wordpress.conf
+  156  sudo vim /etc/apache2/sites-available/wordpress.conf
+  157  sudo a2ensite wordpress
+  158  sudo systemctl reload apache2
+  159  cp wp-config-sample.php wp-config.php
+  160  vi wp-config.php
+  161  sudo apt install --yes --force php php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip mysqli
+  162  sudo apt install -y php php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip mysqli
+  163  sudo apt install --yes php php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip mysqli
+  164  apt-get search mysqli
+  165  sudo apt install --yes php php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip php-mysql
+  166  sudo systemctl reload apache2
+  167  sudo vim /etc/apache2/sites-available/wordpress.conf
+  168  vi wp-config.php
+  169  curl https://api.wordpress.org/secret-key/1.1/salt/ -o salts
+  170  vi salts
+  171  vi wp-config.php
+  172  nslookup wordpress.cdutynjltmk3.us-east-1.rds.amazonaws.com
+  173  nc wordpress.cdutynjltmk3.us-east-1.rds.amazonaws.com -port 3306
+  174  nc wordpress.cdutynjltmk3.us-east-1.rds.amazonaws.com:3306
+  175  nc wordpress.cdutynjltmk3.us-east-1.rds.amazonaws.com 3306
+  176  vi wp-config.php
+  177  mysql -h wordpress.cdutynjltmk3.us-east-1.rds.amazonaws.com -u admin -p whJO[EUnSGWtMJ$C
+  178  sudo apt install --yes php php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip php-mysql mysql-client-core-8.0
+  179  mysql -h wordpress.cdutynjltmk3.us-east-1.rds.amazonaws.com -u admin -p whJO[EUnSGWtMJ$C
+  180  mysql -h wordpress.cdutynjltmk3.us-east-1.rds.amazonaws.com -u rds_user -p whJO[EUnSGWtMJ$C
+  181  mysql -h wordpress.cdutynjltmk3.us-east-1.rds.amazonaws.com -u rds_user
+  182  mysql -h wordpress.cdutynjltmk3.us-east-1.rds.amazonaws.com -u rds_user -p
+  183  history
+  184  sudo mv /var/www/html /mnt/efs/data/html
+  185  sudo cp /etc/apache2/sites-available/wordpress.conf /mnt/efs/data/
+  186  sudo ls -l /var/www/
+  187  mkdir /var/www/html
+  188  ln -s /mnt/efs/data/html /var/www/html
+  189  sudo ls -l /var/www/
+  190  sudo rm -R /var/www/html
+  191  sudo ls -l /var/www/
+  192  sudo ln -s /mnt/efs/data/html /var/www/html
+  193  sudo ls -l /var/www/
+  194  sudo ls -l /mnt/efs/data
+  195  cat wp-config.php
+  196  mysql -h wordpress.cdutynjltmk3.us-east-1.rds.amazonaws.com -u rds_user -p
+  197  cat wp-config-sample.php
+  198  history

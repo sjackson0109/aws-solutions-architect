@@ -1,1 +1,13 @@
-*/terraform.state
+
+*/*/.terraform/*
+*/*/.terraform
+*/*/.terraform.*
+*/*/terraform.tfstate
+*/*/terraform.tfstate.*
+*/*/WinSCP.*
+*/*/*.exe
+**/*.exe
+*/*/*.pem
+*/*/*.ppk
+*/*/history.txt
+accesskeys.ps1

@@ -1,0 +1,387 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Template for aws-solution-architecture - HA WordPress project.
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: The domain name for your WordPress site
+    Default: "sjackson0109.click"
+
+Resources:
+  MyKeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: sjackson0109-key-pair
+
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.101.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: True
+
+  HostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: !Ref DomainName
+      VPCs: 
+        - !Ref VPC
+
+  SubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.101.0.0/24
+      AvailabilityZone: us-east-1a
+  SubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.101.1.0/24
+      AvailabilityZone: us-east-1b
+  SubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.101.2.0/24
+      AvailabilityZone: us-east-1a
+  SubnetD:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.101.3.0/24
+      AvailabilityZone: us-east-1b
+
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+
+  AttachGateway:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+
+  PrivateRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+
+  InternetRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetARouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  SubnetBRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  SubnetCRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetC
+      RouteTableId: !Ref PrivateRouteTable
+
+  SubnetDRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetD
+      RouteTableId: !Ref PrivateRouteTable
+
+  EC2Instance0: #initial instance, that is to be used for AIM generation
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0e731c8a588258d0d
+      SubnetId: !Ref SubnetA
+      SecurityGroupIds:
+      - !Ref EC2SecurityGroup
+      UserData: !Base64 |
+        #!/bin/bash
+        yum update -y
+        yum install httpd -y
+        systemctl start httpd
+        systemctl enable httpd
+  
+  AIMImage:
+    Type: AWS::EC2::ImageBuilder
+    Properties:
+      Name: wordpress-aim-sjackon0109
+      InstanceId: !Ref EC2Instance0
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: wordpress-scaling-group
+      LaunchConfigurationName: MyLaunchConfiguration
+      MinSize: 1
+      MaxSize: 4
+      DesiredCapacity: 2
+      AvailabilityZones:
+        - !GetAtt SubnetA.AvailabilityZone
+        - !GetAtt SubnetB.AvailabilityZone
+      Tags:
+        - Key: Name
+          Value: wordpress-scaling-group
+          PropagateAtLaunch: 'true'
+
+  ScheduledActionScaleUp:
+    Type: AWS::AutoScaling::ScheduledAction
+    Properties:
+      AutoScalingGroupName: wordpress-scaling-ip
+      DesiredCapacity: 2
+      StartTime: '2024-02-25T23:00:00Z' # 11 PM
+
+  ScheduledActionScaleDown:
+    Type: AWS::AutoScaling::ScheduledAction
+    Properties:
+      AutoScalingGroupName: wordpress-scaling-down
+      DesiredCapacity: 1
+      StartTime: '2024-02-26T00:00:00Z' # Midnight
+
+  # EIPA:
+  #   Type: 'AWS::EC2::EIP'
+  #   Properties:
+  #     InstanceId: !Ref EC2InstanceA
+
+  # EIPB:
+  #   Type: 'AWS::EC2::EIP'
+  #   Properties:
+  #     InstanceId: !Ref EC2InstanceB
+
+  LoadBalancer:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Type: application
+      IpAddressType: ipv4
+      Subnets:
+        - !Ref SubnetA
+        - !Ref SubnetB
+      SecurityGroups:
+        - !Ref LBSecurityGroup
+      Scheme: internet-facing
+
+  LBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 80
+      Protocol: TCP
+      VpcId: !Ref VPC
+      HealthCheckEnabled: True
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPort: 389
+      HealthCheckProtocol: TCP
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 3
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 60
+      Targets:
+      - Id: !Ref SubnetA
+        Port: 80
+      - Id: !Ref SubnetB
+        Port: 80
+      TargetType: ip
+
+  LBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref LBTargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: '80'
+      Protocol: HTTP
+
+  EC2SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable HTTP/S and SSH access
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 22
+          CidrIp: 51.6.187.228/32
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: udp
+          FromPort: 0
+          ToPort: 123
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 53
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 3306
+          CidrIp: 10.101.0.0/16
+  
+  DBSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Protecting the mysql backend
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 3306
+          CidrIp: 10.101.0.0/16
+      SecurityGroupEgress:
+        - IpProtocol: udp
+          FromPort: 0
+          ToPort: 123
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 53
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  LBSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable HTTP/S access to the backend
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+
+  DBSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: Grouping the backend Subnets for multi-az instances
+      SubnetIds:
+        - !Ref SubnetC
+        - !Ref SubnetD
+
+  DBSecGroup:
+    Type: AWS::RDS::DBSecurityGroup
+    Properties:
+      EC2VpcId: !Ref VPC
+      GroupDescription: wp-rds-sg
+      # CIDRIP: 10.105.80.168/32
+      DBSecurityGroupIngress:
+        - EC2SecurityGroupName: !Ref DBSecurityGroup
+          EC2SecurityGroupOwnerId: !Ref AWS::AccountId
+
+  DBInstance:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBName:  "wprds" #DBName must begin with a letter and contain only alphanumeric characters
+      AllocatedStorage: 20
+      DBInstanceClass: db.t2.micro
+      Engine: mysql
+      EngineVersion: '5.7'
+      MasterUsername: rdsuser
+      MasterUserPassword: password
+      MultiAZ: true
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      DBSecurityGroups:
+      - !Ref DBSecGroup
+
+
+  CloudFrontDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - !Ref DomainName
+        DefaultRootObject: index.html
+        DefaultCacheBehavior:
+          TargetOriginId: LoadBalancer
+          ViewerProtocolPolicy: allow-all #Constraint: redirect-to-https, https-only, allow-all
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+            Headers:
+              - "origin"
+        Origins:
+          - Id: LoadBalancer
+            DomainName: !GetAtt LoadBalancer.DNSName
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: http-only
+        Enabled: true
+
+  # Define a Route 53 health check
+  MyHealthCheck:
+    Type: AWS::Route53::HealthCheck
+    Properties:
+      HealthCheckConfig:
+        Type: HTTP
+        ResourcePath: "/"
+        FullyQualifiedDomainName: !GetAtt [LoadBalancer, DNSName]
+        Port: 80
+        RequestInterval: 30
+        FailureThreshold: 3
+
+  # Associate the health check with a Route 53 record set
+  MyRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZone
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt [LoadBalancer, DNSName]
+        EvaluateTargetHealth: true
+
+Outputs:
+  LoadBalancerDNSName:
+    Description: The DNS name of the load balancer
+    Value: !GetAtt LoadBalancer.DNSName
+  CloudFrontDistributionDomainName:
+    Description: The CloudFront distribution domain name
+    Value: !GetAtt CloudFrontDistribution.DomainName
