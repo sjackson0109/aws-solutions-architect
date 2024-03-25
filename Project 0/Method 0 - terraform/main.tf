@@ -125,35 +125,59 @@ resource "aws_efs_mount_target" "attach" {
 # mount the file-system to the attached disk for a given local path
 resource "null_resource" "efs_mount" {
   for_each = { for key, value in var.project.compute.ec2 : key => value if can(value.efs_key) }
-  # login via ssh
   connection {
     type        = "ssh"
     user        = "ubuntu" #"ec2-user"
     host        = aws_eip.eip[each.key].public_ip
     private_key = tls_private_key.rsa[each.value.key_pair_key].private_key_openssh
-    timeout     = "4m"
+    timeout     = "30s"
   }
-  # run some code
   provisioner "remote-exec" {
     inline = [
+      "#!/bin/bash",
+      "cat <<EOF > efs_setup.sh",
       "#!/bin/bash",
       "# Install nfs-common",
       "sudo apt-get -y install nfs-common",
       "# Mount EFS File System and Set Permissions",
       "sudo mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.mount_point}",
-      "test -f \"/sbin/mount.efs\" && printf \"\\n${aws_efs_file_system.efs[each.value.efs_key].dns_name}:/ ${var.project.storage.efs[each.value.efs_key].tags.mount_point} efs tls,_netdev\\n\" | sudo tee -a /etc/fstab || printf \"\\n${aws_efs_file_system.efs[each.value.efs_key].dns_name}:/ ${var.project.storage.efs[each.value.efs_key].tags.mount_point} nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev 0 0\\n\" | sudo tee -a /etc/fstab",
-      "test -f \"/sbin/mount.efs\" && grep -ozP 'client-info]\\nsource' '/etc/amazon/efs/efs-utils.conf'; if [[ $? == 1 ]]; then printf \"\\n[client-info]\\nsource=liw\\n\" | sudo tee -a /etc/amazon/efs/efs-utils.conf; fi;",
-      "sudo mount ${var.project.storage.efs[each.value.efs_key].tags.mount_point}",
+      "sudo grep -q \"${aws_efs_file_system.efs[each.value.efs_key].dns_name}\" /etc/fstab || (printf \"\\n${aws_efs_file_system.efs[each.value.efs_key].dns_name}:/ ${var.project.storage.efs[each.value.efs_key].tags.mount_point} nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0\\n\" | sudo tee -a /etc/fstab || printf \"\\n${aws_efs_file_system.efs[each.value.efs_key].dns_name}:/ ${var.project.storage.efs[each.value.efs_key].tags.mount_point} nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0\\n\" | sudo tee -a /etc/fstab)",
       "sudo chown -R ${var.project.storage.efs[each.value.efs_key].tags.owner}:${var.project.storage.efs[each.value.efs_key].tags.group} ${var.project.storage.efs[each.value.efs_key].tags.mount_point}",
-      "# Create symbolic link within /var/www/html",
-      "sudo mkdir -p /var/www/html",
-      "sudo chown -R ${var.project.storage.efs[each.value.efs_key].tags.owner}:${var.project.storage.efs[each.value.efs_key].tags.group} /var/www/html",
-      "sudo ln -s ${var.project.storage.efs[each.value.efs_key].tags.mount_point} /var/www/html"
+      "EOF",
+      "chmod +x efs_setup.sh",
+      "./efs_setup.sh"
     ]
-
   }
+  depends_on = [ aws_efs_mount_target.attach ]
 }
-
+# Manage sym-link creation
+resource "null_resource" "symlinks" {
+  for_each = { for key, value in var.project.compute.ec2 : key => value if can(value.efs_key) }
+  connection {
+    type        = "ssh"
+    user        = "ubuntu" #"ec2-user"
+    host        = aws_eip.eip[each.key].public_ip
+    private_key = tls_private_key.rsa[each.value.key_pair_key].private_key_openssh
+    timeout     = "30s"
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "#!/bin/bash",
+      "cat <<EOF > symlinks.sh",
+      "#!/bin/bash",
+      "# Create symbolic link",
+      "mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-includes",
+      "mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-content",
+      "sudo ln -sf ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-includes ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/wp-includes",
+      "sudo ln -sf ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-content ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/wp-content",
+      "sudo chown -R ${var.project.storage.efs[each.value.efs_key].tags.owner}:${var.project.storage.efs[each.value.efs_key].tags.group} ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}",
+      "EOF",
+      "chmod +x symlinks.sh",
+      "./symlinks.sh"
+    ]
+  }
+  depends_on = [ null_resource.efs_mount ]
+}
 
 # Elastic IPs
 resource "aws_eip" "eip" {
@@ -478,30 +502,10 @@ resource "aws_db_parameter_group" "rds" {
   }
 }
 
-# Cluster Instance : Instance (wordpress-cluster-1): InvalidParameterValue: Instances cannot be added to Aurora Serverless clusters
-# Leaving this code, for anyone cloning this project, and they want to use ec2 (provisioned) instances.
-# resource "aws_rds_cluster_instance" "rds" {
-#   for_each = var.project.compute.rds.instances
-#   cluster_identifier         = aws_rds_cluster.rds[each.value.cluster_key].id
-#   engine                     = aws_rds_cluster.rds[each.value.cluster_key].engine
-#   engine_version             = aws_rds_cluster.rds[each.value.cluster_key].engine_version
-#   apply_immediately          = each.value.apply_immediately
-#   auto_minor_version_upgrade = each.value.auto_minor_version_upgrade
-#   db_parameter_group_name    = aws_db_parameter_group.rds[each.value.db_parameter_group_key].name
-#   db_subnet_group_name       = aws_db_subnet_group.rds[each.value.db_subnet_group_key].name
-#   identifier                 = "${aws_rds_cluster.rds[each.value.cluster_key].id}-${each.key + 1}"
-#   instance_class             = try(each.value.instance_class, "db.t3.medium")
-#   publicly_accessible        = try(each.value.publically_accessible, false)
-#   lifecycle {
-#     ignore_changes = [engine_version]
-#   }
-# }
-
 ##################################
 #             COMPUTE            #
 ##################################
 
-# EC2
 # Create the EC2 Instance to host the web-frontend on
 resource "aws_instance" "ec2" {
   for_each                    = var.project.compute.ec2
@@ -518,7 +522,7 @@ resource "aws_instance" "ec2" {
     host        = self.public_ip
     user        = "ubuntu"
     private_key = tls_private_key.rsa[0].private_key_openssh
-    timeout     = "4m"
+    timeout     = "30s"
   }
   lifecycle {
     ignore_changes = [ami]
@@ -622,7 +626,7 @@ resource "null_resource" "configure_wordpress_frontend" {
     user        = "ubuntu" # or ec2-user
     host        = aws_eip.eip[each.key].public_ip
     private_key = tls_private_key.rsa[each.value.key_pair_key].private_key_openssh
-    timeout     = "4m"
+    timeout     = "30s"
   } 
   provisioner "remote-exec" {
     inline = [
@@ -641,22 +645,24 @@ resource "null_resource" "configure_wordpress_frontend" {
       "sudo a2dissite 000-default",
       "sudo rm /var/www/html/index.html",
       "AP_CONFIG='/etc/apache2/sites-available/wordpress.conf'",
-      "sudo echo \"<VirtualHost *:80>\" > $AP_CONFIG",
-      "sudo echo \"   ServerName example.com\" >> $AP_CONFIG",
-      "sudo echo \"   Alias www.example.com\" >> $AP_CONFIG",
-      "sudo echo \"   DocumentRoot '/var/www/html'\" >> $AP_CONFIG",
-      "sudo echo \"   <Directory '/var/www/html'>\" >> $AP_CONFIG",
-      "sudo echo \"    Require all granted\" >> $AP_CONFIG",
-      "sudo echo \"    DirectoryIndex index.php\" >> $AP_CONFIG",
-      "sudo echo \"    AllowOverride FileInfo\" >> $AP_CONFIG",
-      "sudo echo \"    FallbackResource /index.php\" >> $AP_CONFIG",
-      "sudo echo \"  </Directory>\" >> $AP_CONFIG",
-      "sudo echo \"  <Directory '/var/www/html/wp-admin'>\" >> $AP_CONFIG",
-      "sudo echo \"    FallbackResource disabled\" >> $AP_CONFIG",
-      "sudo echo \"  </Directory>\" >> $AP_CONFIG",
-      "sudo echo \"  ProxyPassMatch ^/(.*\\.php(/.*)?)$ unix:/var/run/php/php-fpm.sock|fcgi://dummy/var/www/wordpress\" >> $AP_CONFIG",
-      "sudo echo \"</VirtualHost>\" >> $AP_CONFIG",
-      "sed -i 's|example.com|${var.project.domains[0].name}|g' $AP_CONFIG;",
+      "cat << EOF | sudo tee $AP_CONFIG > /dev/null",
+      "<VirtualHost *:80>",
+      "  ServerName example.com",
+      "  Alias www.example.com",
+      "  DocumentRoot '/var/www/html'",
+      "  <Directory '/var/www/html'>",
+      "    Require all granted",
+      "    DirectoryIndex index.php",
+      "    AllowOverride FileInfo",
+      "    FallbackResource /index.php",
+      "  </Directory>",
+      "  <Directory '/var/www/html/wp-admin'>",
+      "    FallbackResource disabled",
+      "  </Directory>",
+      "  ProxyPassMatch ^/(.*\\.php(/.*)?)$ unix:/var/run/php/php-fpm.sock|fcgi://dummy/var/www/wordpress",
+      "</VirtualHost>",
+      "EOF",
+      "sudo sed -i 's|example.com|${var.project.domains[0].name}|g' $AP_CONFIG;",
       "# Enable the new site in apache",
       "sudo a2ensite wordpress",
       "# Copy the sample wp-config file out",      
@@ -672,7 +678,8 @@ resource "null_resource" "configure_wordpress_frontend" {
       "SALT=$(curl -L 'https://api.wordpress.org/secret-key/1.1/salt/')",
       "# Replace existing salts in wp-config.php with the fetched ones",
       "sed -i \"/put your unique phrase here/d\" $WP_CONFIG;",
-      "echo \"$SALT\" >> $WP_CONFIG"
+      "echo \"$SALT\" >> $WP_CONFIG",
+      "sudo systemctl restart apache2"
     ]
     #on_failure = continue
   }
