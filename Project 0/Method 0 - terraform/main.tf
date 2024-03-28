@@ -21,11 +21,11 @@ resource "aws_subnet" "subnets" {
         vpc_id            = aws_vpc.networks[vpcKey].id
         cidr_block        = sValue.cidr_block
         availability_zone = try(sValue.availability_zone, "us-east-1a") #us-east-1a, us-east-1b, us-east-1c, us-east-1d, us-east-1e, us-east-1f
+        tags = sValue.tags
       }
     }
   ]...)
   vpc_id = each.value.vpc_id
-
   cidr_block        = each.value.cidr_block
   availability_zone = each.value.availability_zone
   tags              = try(each.value.tags, var.project.tags)
@@ -119,64 +119,6 @@ resource "aws_efs_mount_target" "attach" {
   subnet_id       = aws_subnet.subnets["${each.value.vpc_key}-${each.value.subnet_key}"].id
   security_groups = try([aws_subnet.subnets[each.value.security_group_key].id], null)
   depends_on      = [ aws_efs_file_system.efs, aws_instance.ec2 ] #instance was built in the wrong subnet, caused a conflict without these dependancies
-}
-
-
-# mount the file-system to the attached disk for a given local path
-resource "null_resource" "efs_mount" {
-  for_each = { for key, value in var.project.compute.ec2 : key => value if can(value.efs_key) }
-  connection {
-    type        = "ssh"
-    user        = "ubuntu" #"ec2-user"
-    host        = aws_eip.eip[each.key].public_ip
-    private_key = tls_private_key.rsa[each.value.key_pair_key].private_key_openssh
-    timeout     = "30s"
-  }
-  provisioner "remote-exec" {
-    inline = [
-      "#!/bin/bash",
-      "cat <<EOF > efs_setup.sh",
-      "#!/bin/bash",
-      "# Install nfs-common",
-      "sudo apt-get -y install nfs-common",
-      "# Mount EFS File System and Set Permissions",
-      "sudo mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.mount_point}",
-      "sudo grep -q \"${aws_efs_file_system.efs[each.value.efs_key].dns_name}\" /etc/fstab || (printf \"\\n${aws_efs_file_system.efs[each.value.efs_key].dns_name}:/ ${var.project.storage.efs[each.value.efs_key].tags.mount_point} nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0\\n\" | sudo tee -a /etc/fstab || printf \"\\n${aws_efs_file_system.efs[each.value.efs_key].dns_name}:/ ${var.project.storage.efs[each.value.efs_key].tags.mount_point} nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0\\n\" | sudo tee -a /etc/fstab)",
-      "sudo chown -R ${var.project.storage.efs[each.value.efs_key].tags.owner}:${var.project.storage.efs[each.value.efs_key].tags.group} ${var.project.storage.efs[each.value.efs_key].tags.mount_point}",
-      "EOF",
-      "chmod +x efs_setup.sh",
-      "./efs_setup.sh"
-    ]
-  }
-  depends_on = [ aws_efs_mount_target.attach ]
-}
-# Manage sym-link creation
-resource "null_resource" "symlinks" {
-  for_each = { for key, value in var.project.compute.ec2 : key => value if can(value.efs_key) }
-  connection {
-    type        = "ssh"
-    user        = "ubuntu" #"ec2-user"
-    host        = aws_eip.eip[each.key].public_ip
-    private_key = tls_private_key.rsa[each.value.key_pair_key].private_key_openssh
-    timeout     = "30s"
-  }
-  provisioner "remote-exec" {
-    inline = [
-      "#!/bin/bash",
-      "cat <<EOF > symlinks.sh",
-      "#!/bin/bash",
-      "# Create symbolic link",
-      "mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-includes",
-      "mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-content",
-      "sudo ln -sf ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-includes ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/wp-includes",
-      "sudo ln -sf ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-content ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/wp-content",
-      "sudo chown -R ${var.project.storage.efs[each.value.efs_key].tags.owner}:${var.project.storage.efs[each.value.efs_key].tags.group} ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}",
-      "EOF",
-      "chmod +x symlinks.sh",
-      "./symlinks.sh"
-    ]
-  }
-  depends_on = [ null_resource.efs_mount ]
 }
 
 # Elastic IPs
@@ -385,8 +327,26 @@ resource "random_password" "generated" {
   for_each         = var.project.compute.credentials
   length           = 16
   special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
+  override_special = "_!%^"
+  #override_special = "!#$%&*()-_=+[]{}<>:?"
 }
+
+# I would ordinarily save secrets in a vault.. but simplilearn have restricted this:
+#  Error: reading Secrets Manager Secret (arn:aws:secretsmanager:us-east-1:078096090266:secret:wordpress-asTpqe): AccessDeniedException: User: arn:aws:iam::646672863546:user/odl_user_1279421 is not authorized to perform: 
+#   secretsmanager:DescribeSecret on resource: arn:aws:secretsmanager:us-east-1:078096090266:secret:wordpress-asTpqe because no resource-based policy allows the secretsmanager:DescribeSecret action
+# # Create a secret to store the generated credential in
+# resource "aws_secretsmanager_secret" "store" {
+#   for_each = try(var.project.compute.credentials,{})
+#   name = var.project.compute.credentials[each.key].username
+#   depends_on = [ random_password.generated ]
+# }
+# # Save the latest version, full history is obtainable
+# resource "aws_secretsmanager_secret_version" "latest" {
+#   for_each = try(var.project.compute.credentials,{})
+#   secret_id = aws_secretsmanager_secret.store[each.key].id
+#   secret_string = random_password.generated[each.key].result
+#   depends_on = [ aws_secretsmanager_secret.store, random_password.generated ]
+# }
 
 # Export the TLS Private Key into OpenSSH format (pem)
 resource "local_file" "export_tls_private_key" {
@@ -395,11 +355,11 @@ resource "local_file" "export_tls_private_key" {
   depends_on = [tls_private_key.rsa]
 }
 
-# Convert the OpenSSH file to a Putty supported format (ppk)
-resource "null_resource" "convert_private_key_to_ppk" {
-  provisioner "local-exec" { command = "winscp.com /keygen privatekey.pem /output=privatekey.ppk" }
-  depends_on = [local_file.export_tls_private_key]
-}
+# # Convert the OpenSSH file to a Putty supported format (ppk)
+# resource "null_resource" "convert_private_key_to_ppk" {
+#   provisioner "local-exec" { command = "winscp.com /keygen privatekey.pem /output=privatekey.ppk" }
+#   depends_on = [local_file.export_tls_private_key]
+# }
 
 # the OpenSSH formatted public key
 resource "aws_key_pair" "rsa" {
@@ -509,7 +469,7 @@ resource "aws_db_parameter_group" "rds" {
 # Create the EC2 Instance to host the web-frontend on
 resource "aws_instance" "ec2" {
   for_each                    = var.project.compute.ec2
-  ami                         = try(each.value.ami, data.aws_ami.ami_lookup["${each.value.os}"].id) # fallback to the free tier
+  ami                         = try(each.value.ami, data.aws_ami.lookup["${each.value.os}"].id) # fallback to the free tier
   instance_type               = try(each.value.instance_type, "t2.micro")
   subnet_id                   = aws_subnet.subnets["${each.value.vpc_key}-${each.value.subnet_key}"].id
   vpc_security_group_ids      = [aws_security_group.sg[each.value.security_group_key].id]
@@ -586,39 +546,64 @@ resource "aws_instance" "ec2" {
 # }
 
 
-# Configure Wordpress, passing parameters
-# Login to SSH using private-key, write wp-setup commands, substituting wp user and wp pass.
-# Login to mysql as root user, issue wp-setup commands.
-resource "null_resource" "configure_wordpress_db" {
-  #login via ssh - only need to login to one box
+
+# mount the file-system to the attached disk for a given local path
+resource "null_resource" "efs_mount" {
+  for_each = { for key, value in var.project.compute.ec2 : key => value if can(value.efs_key) }
   connection {
     type        = "ssh"
     user        = "ubuntu" #"ec2-user"
-    host        = aws_eip.eip[0].public_ip                   # SSH to the public ip isn't secure, but the SSH port is not going to be open forever
-    private_key = tls_private_key.rsa[0].private_key_openssh # one SSH Key per ec2 instance
+    host        = aws_eip.eip[each.key].public_ip
+    private_key = tls_private_key.rsa[each.value.key_pair_key].private_key_openssh
     timeout     = "30s"
   }
   provisioner "remote-exec" {
     inline = [
       "#!/bin/bash",
-      "sudo apt install --yes mysql-client-core-8.0",
-      "# Setup the WP Database",
-      "echo \"DROP USER `wordpress`@`%`;\" > commands.sql",
-      "echo \"CREATE USER `${var.project.compute.credentials[1].username}`@`%` IDENTIFIED BY `${random_password.generated[1].result}`;\" > commands.sql",
-      "echo \"CREATE DATABASE '${aws_rds_cluster.rds[0].database_name}';\" >> commands.sql",
-      "echo \"GRANT ALL PRIVILEGES ON `${aws_rds_cluster.rds[0].database_name}`.`*` TO `${var.project.compute.credentials[1].username}`@`*` WITH GRANT OPTION;\" >> commands.sql",
-      "echo \"FLUSH PRIVILEGES;\" >> commands.sql",
-      "echo \"EXIT;\" >> commands.sql",
-      "mysql --host=${aws_rds_cluster.rds[0].endpoint} --user=${var.project.compute.credentials[0].username} --password='${random_password.generated[0].result}' < commands.sql",
-      "/bin/rm -f comamnds.sql"
+      "cat <<EOF > efs_setup.sh",
+      "#!/bin/bash",
+      "# Install nfs-common",
+      "sudo apt-get -y install nfs-common",
+      "# Mount EFS File System and Set Permissions",
+      "sudo mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.mount_point}",
+      "sudo mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-includes",
+      "sudo mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-content",
+      "sudo grep -q \"${aws_efs_file_system.efs[each.value.efs_key].dns_name}\" /etc/fstab || (printf \"\\n${aws_efs_file_system.efs[each.value.efs_key].dns_name}:/ ${var.project.storage.efs[each.value.efs_key].tags.mount_point} nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0\\n\" | sudo tee -a /etc/fstab || printf \"\\n${aws_efs_file_system.efs[each.value.efs_key].dns_name}:/ ${var.project.storage.efs[each.value.efs_key].tags.mount_point} nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0\\n\" | sudo tee -a /etc/fstab)",
+      "sudo chown -R ${var.project.storage.efs[each.value.efs_key].tags.owner}:${var.project.storage.efs[each.value.efs_key].tags.group} ${var.project.storage.efs[each.value.efs_key].tags.mount_point}",
+      "EOF",
+      "chmod +x efs_setup.sh",
+      "./efs_setup.sh"
     ]
   }
-  # we MUST wait for the EC2 instance to boot; executing the user_data one-time-boot script, installing wp etc before we can configure it
-  depends_on = [tls_private_key.rsa, aws_instance.ec2, aws_eip.eip, aws_rds_cluster.rds]
+  depends_on = [ aws_efs_mount_target.attach ]
+}
+# Manage sym-link creation
+resource "null_resource" "symlinks" {
+  for_each = { for key, value in var.project.compute.ec2 : key => value if can(value.efs_key) }
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    host        = aws_eip.eip[each.key].public_ip
+    private_key = tls_private_key.rsa[each.value.key_pair_key].private_key_openssh
+    timeout     = "30s"
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "#!/bin/bash",
+      "# Create symbolic link",
+      "sudo mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}",
+      "sudo chown -R ${var.project.storage.efs[each.value.efs_key].tags.owner}:${var.project.storage.efs[each.value.efs_key].tags.group} ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}",
+      "mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/wp-includes",
+      "mkdir -p ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/wp-content",
+      "sudo ln -sf ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-includes ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/wp-includes",
+      "sudo ln -sf ${var.project.storage.efs[each.value.efs_key].tags.mount_point}/wp-content ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/wp-content"
+    ]
+  }
+  depends_on = [ null_resource.efs_mount ]
 }
 
-# Configure Wordpress mysql user
-resource "null_resource" "configure_wordpress_frontend" {
+# Configure Apache and PHP
+resource "null_resource" "install_wordpress" {
   for_each = var.project.compute.ec2
   #login via ssh
   connection {
@@ -632,62 +617,142 @@ resource "null_resource" "configure_wordpress_frontend" {
     inline = [
       "#!/bin/bash",
       "# Automate Latest Wordpress Installation on Ubuntu with Apache",
-      "sudo apt-get update -y",
-      "sudo apt install --yes php php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip php-mysql",
+      "sudo apt update && sudo apt install -y software-properties-common",
+      "sudo add-apt-repository -y ppa:ondrej/php",
+      "sudo apt update && sudo apt install -y php8.1",
+      "sudo apt install -y apache2",
+      "sudo apt install -y php8.1-cli php8.1-common php8.1-mysql php8.1-zip php8.1-gd php8.1-mbstring php8.1-curl php8.1-xml php8.1-bcmath",
+      "sudo apt install -y php8.1-fpm",
+      "sudo apt install -y php libapache2-mod-php php-mysql",
+      "sudo apt install -y mysql-client-core-8.0",
+      "# Ensure correct file/folder ownership",
+      "sudo chown -R ubuntu:www-data /var/www",
+      "sudo rm -f ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/index.html",
       "# Download wordpress package and extract",
       "sudo wget --progress=bar:force:noscroll https://wordpress.org/latest.tar.gz",
       "sudo tar -xzf latest.tar.gz",
-      "sudo cp -r ./wordpress/* /var/www/html/",
+      "sudo cp -r ./wordpress/* ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/",
       "sudo rm -rf ./wordpress ./latest.tar.gz",
-      "# Ensure correct file/folder ownership",
-      "sudo chown -R ubuntu:www-data /var/www",
-      "# Disable the default site",
-      "sudo a2dissite 000-default",
-      "sudo rm /var/www/html/index.html",
+      "# Setup Apache Site",
       "AP_CONFIG='/etc/apache2/sites-available/wordpress.conf'",
-      "cat << EOF | sudo tee $AP_CONFIG > /dev/null",
+      "cat << 'EOF' | sudo tee $AP_CONFIG > /dev/null",
       "<VirtualHost *:80>",
-      "  ServerName example.com",
-      "  Alias www.example.com",
-      "  DocumentRoot '/var/www/html'",
-      "  <Directory '/var/www/html'>",
+      "  ServerName ${var.project.domains[0].name}",
+      "  ServerAlias www.${var.project.domains[0].name}",
+      "  ServerAdmin webmaster@localhost",
+      "  DocumentRoot \"${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}\"",
+      "  <Directory \"${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}\">",
       "    Require all granted",
       "    DirectoryIndex index.php",
       "    AllowOverride FileInfo",
       "    FallbackResource /index.php",
       "  </Directory>",
-      "  <Directory '/var/www/html/wp-admin'>",
+      "  <Directory \"${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/wp-admin\">",
       "    FallbackResource disabled",
       "  </Directory>",
-      "  ProxyPassMatch ^/(.*\\.php(/.*)?)$ unix:/var/run/php/php-fpm.sock|fcgi://dummy/var/www/wordpress",
+      "  <FilesMatch \\.php$>",
+      "    SetHandler \"proxy:unix:/run/php/php8.1-fpm.sock|fcgi://localhost/\"",
+      "  </FilesMatch>",
       "</VirtualHost>",
       "EOF",
-      "sudo sed -i 's|example.com|${var.project.domains[0].name}|g' $AP_CONFIG;",
-      "# Enable the new site in apache",
+      "# Lockdown file permissions",
+      "find /var/www -type d -exec chmod 2775 {} \\;",
+      "find /var/www -type f -exec chmod 0664 {} \\;",
+      "# Enable Proxy functionality within Apache",
+      "sudo a2dissite 000-default > /dev/null",
       "sudo a2ensite wordpress",
-      "# Copy the sample wp-config file out",      
-      "WP_CONFIG='/var/www/html/wp-config.php'",
-      "sudo cp /var/www/html/wp-config-sample.php $WP_CONFIG",
-      "# Update wp-config.php file with database details",
-      "sed -i 's|database_name_here|${aws_rds_cluster.rds[0].database_name}|g' $WP_CONFIG;",
-      "sed -i 's|username_here|${var.project.compute.credentials[1].username}|g' $WP_CONFIG;",
-      "sed -i 's|password_here|${random_password.generated[1].result}|g' $WP_CONFIG;",
-      "sed -i 's|localhost|${aws_rds_cluster.rds[0].endpoint}|g' $WP_CONFIG;",
-      "# port:${aws_rds_cluster.rds[0].port}",
-      "# Fetch salts from WordPress API",
-      "SALT=$(curl -L 'https://api.wordpress.org/secret-key/1.1/salt/')",
-      "# Replace existing salts in wp-config.php with the fetched ones",
-      "sed -i \"/put your unique phrase here/d\" $WP_CONFIG;",
-      "echo \"$SALT\" >> $WP_CONFIG",
+      "sudo a2enmod php8.1 proxy_fcgi setenvif rewrite;",
+      "sudo a2enconf php8.1-fpm;",
       "sudo systemctl restart apache2"
     ]
-    #on_failure = continue
+
   }
-  depends_on = [ tls_private_key.rsa, aws_instance.ec2, aws_eip.eip, null_resource.configure_wordpress_db ]
+  depends_on = [ null_resource.symlinks ]
 }
 
+# Configure Wordpress mysql user
+resource "null_resource" "update_wp_config" {
+  for_each = var.project.compute.ec2
+  #login via ssh
+  connection {
+    type        = "ssh"
+    user        = "ubuntu" # or ec2-user
+    host        = aws_eip.eip[each.key].public_ip
+    private_key = tls_private_key.rsa[each.value.key_pair_key].private_key_openssh
+    timeout     = "30s"
+  } 
+  provisioner "remote-exec" {
+    inline = [
+      "#!/bin/bash",
+      "# Configuring wp-config.php",      
+      "WP_CONFIG='${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/wp-config.php'",
+      "sudo cp -rf ${var.project.storage.efs[each.value.efs_key].tags.symbolic_link}/wp-config-sample.php $WP_CONFIG",
+      "# Update wp-config.php file with database details",
+      "sudo sed -i 's|database_name_here|${aws_rds_cluster.rds[0].database_name}|g' $WP_CONFIG;",
+      "sudo sed -i 's|username_here|${var.project.compute.credentials[1].username}|g' $WP_CONFIG;",
+      "sudo sed -i 's|password_here|${random_password.generated[1].result}|g' $WP_CONFIG;",
+      "sudo sed -i 's|localhost|${aws_rds_cluster.rds[0].endpoint}|g' $WP_CONFIG;",
+      "# port:${aws_rds_cluster.rds[0].port}",
+      "# Replace existing salts in wp-config.php with the fetched ones",
+      "sudo sed -i '/put your unique phrase here/d' $WP_CONFIG",
+      "# Fetch salts from WordPress API",
+      "SALT=$(curl -L https://api.wordpress.org/secret-key/1.1/salt/)",
+      "sudo echo \"$SALT\" | sudo tee -a $WP_CONFIG",
+      "sudo systemctl restart apache2"
+    ]
 
+  }
+  depends_on = [ null_resource.install_wordpress ]
+}
 
+# Configure Wordpress, passing parameters
+resource "null_resource" "configure_wordpress_db" {
+  #login via ssh - only need to login to one box
+  connection {
+    type        = "ssh"
+    user        = "ubuntu" #"ec2-user"
+    host        = aws_eip.eip[1].public_ip                   # SSH to the public ip isn't secure, but the SSH port is not going to be open forever
+    private_key = tls_private_key.rsa[0].private_key_openssh # one SSH Key per ec2 instance
+    timeout     = "30s"
+  }
+  # Had verious degrees of success with different mysql versions. Pay close attention to the GRANT commands, and verify the supported syntax.
+  # 'IDENTIFIED WITH mysql_native_password' should work with mysql v8+
+  # Since the database is remote, creating a 'username'@'remoteIP' isn;t necessary, but the grant TO 'username'@'remoteIP' is necessary, wildcard '%' is also supported here
+  provisioner "remote-exec" {
+    inline = [
+      "#!/bin/bash",
+      "# Setup the WP Database",
+      "echo \"CREATE USER IF NOT EXISTS '${var.project.compute.credentials[1].username}'@'localhost' IDENTIFIED BY '${random_password.generated[1].result}';\" > commands.sql",
+      "echo \"CREATE DATABASE IF NOT EXISTS ${aws_rds_cluster.rds[0].database_name};\" >> commands.sql",
+      #"echo \"GRANT ALL PRIVILEGES ON ${aws_rds_cluster.rds[0].database_name}.* TO '${var.project.compute.credentials[1].username}'@'%' WITH GRANT OPTION;\" >> commands.sql",
+      #"echo \"GRANT ALL PRIVILEGES ON ${aws_rds_cluster.rds[0].database_name}.* TO '${var.project.compute.credentials[1].username}'@'%' IDENTIFIED WITH mysql_native_password '${random_password.generated[1].result}' WITH GRANT OPTION;\" >> commands.sql",
+      "echo \"GRANT ALL PRIVILEGES ON ${aws_rds_cluster.rds[0].database_name}.* TO '${var.project.compute.credentials[1].username}'@'%' IDENTIFIED BY '${random_password.generated[1].result}' WITH GRANT OPTION;\" >> commands.sql",
+      "echo \"FLUSH PRIVILEGES;\" >> commands.sql",
+      "mysql --host=${aws_rds_cluster.rds[0].endpoint} --user=${var.project.compute.credentials[0].username} --password='${random_password.generated[0].result}' < commands.sql"
+    ]
+    # inline = [
+    #   "#!/bin/bash",
+    #   "# Setup the WP Database",
+    #   "echo \"CREATE USER IF NOT EXISTS 'wordpress'@'localhost' IDENTIFIED BY '${random_password.generated[1].result}';\" > commands.sql",
+    #   "echo \"CREATE DATABASE IF NOT EXISTS ${aws_rds_cluster.rds[0].database_name};\" >> commands.sql",
+    #   "echo \"GRANT ALL PRIVILEGES ON ${aws_rds_cluster.rds[0].database_name}.* TO 'wordpress'@'10.%' WITH GRANT OPTION;\" >> commands.sql",
+    #   "echo \"FLUSH PRIVILEGES;\" >> commands.sql",
+    #   "mysql --host=${aws_rds_cluster.rds[0].endpoint} --user=${var.project.compute.credentials[0].username} --password='${random_password.generated[0].result}' < commands.sql"
+    # ]
+
+  }
+  # we MUST wait for the EC2 instance to boot; executing the user_data one-time-boot script, installing wp etc before we can configure it
+  depends_on = [ aws_instance.ec2, aws_rds_cluster.rds ]
+}
+
+output "DB_ADMIN_USER" {
+  value = var.project.compute.credentials[0].username
+}
+
+output "DB_ADMIN_PASSWORD" {
+  value = random_password.generated[0].result
+  sensitive = true
+}
 
 output "DB_HOST" {
   value = aws_rds_cluster.rds[0].endpoint
@@ -713,6 +778,7 @@ output "WP_ADMIN_USER" {
 }
 output "WP_ADMIN_PASSWORD" {
   value = "not set"
+  sensitive = true
 }
 output "WEBSITE" {
   value = "http://www.${aws_route53_zone.public[0].name}"

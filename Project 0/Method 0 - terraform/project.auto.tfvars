@@ -157,9 +157,6 @@ project = {
       2 = {
         lb_instance_key = 0
       }
-      3 = {
-        lb_instance_key = 0
-      }
     }
 
     security_groups = {

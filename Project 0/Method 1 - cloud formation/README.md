@@ -25,6 +25,10 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
     Associate the Private subnets are associated with the correct route-table:
     ![RT Association](<images/01-vpc-private-subnets-association.png>)
 
+    Resource Map:
+
+    ![Resource Map](<images/01-vpc-resource-map.png>)
+
 2. Search for `Key Pairs`. Create a key-pair.
 
     Specifics: Key-Type=`RSA`, Private Key Out: `ppk format`
@@ -292,7 +296,7 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
     
     ![testing ssh](images/15-testing-ssh.png)
 
-16. Setting up Route53 Health Checks - confirming services are online.
+16. Setting up Route53 Health Checks - confirming services are coming online.
     
     ![r53 health checks](images/16-r53-health-checks.png)
 
@@ -327,3 +331,9 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     ![starting](images/17-em-start-dates.png)
 
+18. Quick test with public DNS
+
+    NOTE: for the purposes of this lab, i've not got adminsitrative access over the chosen domain-name, so i added 2x static A-record entries in my windows hosts file.
+
+    
+    ![final call](images/18-final-http-call.png)

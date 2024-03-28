@@ -6,16 +6,17 @@ Between 10/01/2024 and 09/02/2024 this course was taught via remote classrooms (
 Each Lesson was presented by our SimpliLearn trainer. On the course we covered the agenda of:
 | Lesson | Title |
 |---|---|
-| 1 | Course Introduction, AWS IAM Deepdive |
-| 2 | AWS IAM Deepdive (continued), with EC2 Snapshotting and Templating and AWS S3 Deepdive |
-| 3 | AWS S3 Deepdive (continued) |
-| 4 | AWS LB with Content Delivery Network  |
-| 5 |  |
-| 6 |  |
-| 7 |  |
-| 8 |  |
-| 9 |  |
-| 10 |  |
+| 1 | AWS Course Introduction |
+| 2 | AWS Core Concepts |
+| 3 | Compute and Related Features |
+| 4 | Storage Services |
+| 5 | Networking from VPCs to Load Balancing |
+| 6 | Databases |
+| 7 | Security and IAM |
+| 8 | Serverless and Application Services |
+| 9 | Monitoring and Automation |
+| 10 | Container Services |
+| 11 | Kinesis, Lambda, Firehose and others |
 
 At the end of each lesson, we all had lab-activities to perform, sometimes 3-4 per-lesson, each to be completed within our own time. 
 
@@ -40,10 +41,14 @@ Note: I had to do this a couple of times as the lab is only available for 8-hour
 
 ## Prepare AWS CLI
 `aws cli` is a downloadable application that is required to be installed as follows:
-> msiexec /i https://awscli.amazonaws.com/AWSCLIV2.msi
+```
+msiexec /i https://awscli.amazonaws.com/AWSCLIV2.msi
+```
 
 This installation registers the PATH parameter in windows, so re-launch your command line. and then configure the product using:
-> aws configure
+```
+aws configure
+```
 
 Enter the following parameters:
 ```

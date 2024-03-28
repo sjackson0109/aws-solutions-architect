@@ -32,7 +32,7 @@ variable "ami_lookup" {
   }
 }
 
-data "aws_ami" "ami_lookup" {
+data "aws_ami" "lookup" {
   for_each    = var.ami_lookup
   most_recent = each.value.most_recent
   owners      = each.value.owners
