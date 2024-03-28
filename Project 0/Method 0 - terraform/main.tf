@@ -129,6 +129,35 @@ resource "aws_eip" "eip" {
   depends_on = [aws_instance.ec2, aws_internet_gateway.igws]
 }
 
+# Request a Certificate with ACM
+resource "aws_acm_certificate" "cert" {
+  for_each = var.project.domains
+  domain_name               = each.value.name
+  validation_method         = "DNS"
+  tags                      = { Name = "${each.value.name}" }
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+# Challange the certificate in DNS, by adding the ACME challange txt record
+resource "aws_route53_record" "acme_challange" {
+  for_each = var.project.domains
+  allow_overwrite = true
+  name =  tolist(aws_acm_certificate.cert[each.key].domain_validation_options)[0].resource_record_name
+  records = [tolist(aws_acm_certificate.cert[each.key].domain_validation_options)[0].resource_record_value]
+  type = tolist(aws_acm_certificate.cert[each.key].domain_validation_options)[0].resource_record_type
+  zone_id = aws_route53_zone.public[each.key].id
+  ttl = 60
+  depends_on = [ aws_acm_certificate.cert ]
+}
+# Execute the challange/validation process
+resource "aws_acm_certificate_validation" "acme_validation" {
+  for_each = var.project.domains
+  certificate_arn = aws_acm_certificate.cert[each.key].arn
+  validation_record_fqdns = [aws_route53_record.acme_challange[each.key].fqdn]
+  depends_on = [ aws_route53_record.acme_challange ]
+}
+
 
 # Create a nat gateway for each subnet/availability-zone
 # resource "aws_nat_gateway" "frontend" {
