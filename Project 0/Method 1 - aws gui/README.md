@@ -9,8 +9,7 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
 1. Navigate to the VPC area, and Create a VPC:
 
-    Specifics:- 
-     2x availability zones, 2x public subnets, 2x private subnets, and 1 NATGW per-AZ.
+    Specifics: - 2x availability zones, 2x public subnets, 2x private subnets, and 1 NATGW per-AZ.
 
     Create a VPC, with name:`wordpress-vpc`, base-cidr:`10.101.0.0/16`
 
@@ -115,49 +114,49 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Label the EC2 instance
 
-    ![VM Name](images/07-ec2-name.png)
+    ![VM Name](<../images/07-ec2-name.png>)
 
     Select the AIM image `Ubuntu`, with `x64` based architecture
 
-    ![EC2-OS](images/07-ec2-os.png)
+    ![EC2-OS](<../images/07-ec2-os.png>)
 
     Ensure the EC2 Instance-Type is `t2.micro`, we don't need any larger a compute instance
 
-    ![EC2-TYPE](images/07-ec2-type.png)
+    ![EC2-TYPE](<../images/07-ec2-type.png>)
 
     Select the appropriate key-pair for SSH based administration
 
-    ![EC2-Keys]](images/07-ec2-key-pair.png)
+    ![EC2-Keys](<../images/07-ec2-key-pair.png>)
 
     Ensure the `wordpress-vpc` is used, and attach to the `pub-us-east-1a` subnet
 
-    ![EC2-NIC](images/07-ec2-core-network.png)
+    ![EC2-NIC](<../images/07-ec2-core-network.png>)
 
     Associate with the Security Group `frontend-sg`:
 
-    ![EC2-SG1](images/07-ec2-backend-sg.png)
+    ![EC2-SG1](<../images/07-ec2-backend-sg.png>)
     
     HUMAN ERROR: I made a mistake here, accidentally mounting the `backend-sg` rather than the `frontend-sg`; so here is the update operation: 
 
-    ![EC2-SG2](images/07-ec2-frontend-sg-update.png)
+    ![EC2-SG2](<../images/07-ec2-frontend-sg-update.png>)
 
     Mount the encrypted file-system `wordpress-data` to a local path `/mnt/efs/data`
 
-    ![EFS Mount](images/07-ec2-efs-mount.png)
+    ![EFS Mount](<../images/07-ec2-efs-mount.png>)
 
 8. Prepare the Wordpress database
    
     SSH into the wordpress instance using the public IP address, or EC2 Console.
     
-    ![View Public IP](images/10-wp-pip.png)
+    ![View Public IP](<../images/08-wp-pip.png>)
 
     Verify network connectivity to the RDS database instance. 
     
-    ![Network Connection to RDS](images/08-confirm-network-connectivity-to-db.png)
+    ![Network Connection to RDS](<../images/08-confirm-network-connectivity-to-db.png>)
 
     Execute the command `sudo apt install --yes mysql-client-core-8.0` so that we can actually login to RDS with a mysql client. Login using `mysql -h <RDS ENDPOINT NAME> -u rds_user` with the password setup earlier. Create the both the `Wordpress` Database and Username, followed by `Grant all privileges`, `flushing privileges` at the end. 
 
-    ![Create Wordpress DB](images/08-create-wp-db.png)
+    ![Create Wordpress DB](<../images/08-create-wp-db.png>)
 
     NOTE: I repeated this command using the suffix `with grant option;`. After confirming all the necessary commands, i've subsequently extracted this to a `user_data` first-boot-script for my future EC2 instances.
    
@@ -165,7 +164,7 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Simply execute the `sudo ln -s /mnt/efs/data/html /var/www/html` command:
     
-    ![Sym Links](images/09-sym-links-to-efs-disk.png)
+    ![Sym Links](<../images/09-sym-links-to-efs-disk.png>)
 
     Note: if Apache was installed before executing this command, there is an error creating the target html link, use this command to fix it, then repeat the above ln-s command: `sudo rm -rf /var/www/html`
 
@@ -177,7 +176,7 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Identifying the SSH endpoint (public ip on the right)
 
-    ![public ip](images/10-wp-pip.png)
+    ![public ip](<../images/10-wp-pip.png>)
 
     Some of the commands given during the class on this topic, were missing command-line arguments (switches) to silcence the install routines. Thus i took it upon myself to define the entire shell script; here are the commands I manually entered in an SSH console:
 
@@ -223,9 +222,9 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Check the mount point is working:
 
-    ![Mount Point Files](images/10-mount-point-files.png)
+    ![Mount Point Files](<../images/10-mount-point-files.png>)
 
-12. Configure Wordpress database-connection string, and a handful of other items, using SSH scripts:
+11. Configure Wordpress database-connection string, and a handful of other items, using SSH scripts:
 
     Note the credentials below have long expired.
 
@@ -263,77 +262,77 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Visiting the page, to instigate configuration
 
-    ![install](images/10-wp-init.png)
+    ![install](<../images/11-wp-init.png>)
 
     Completing the setup:
 
-    ![setup](images/10-wp-setup.png)
+    ![setup](<../images/11-wp-setup.png>)
 
     After saving, the sql service is populated with a database schema, table designs, and a few sample records (hello world article, and of course my `sjackson` user):
 
-    ![started](images/10-wp-success.png)
+    ![started](<../images/11-wp-success.png>)
 
     Logging in for the first-time:
 
-    ![wp welcome](images/10-wp-welcome.png)
+    ![wp welcome](<../images/11-wp-welcome.png>)
 
-13. Clone the EC2 Instance to a AIM image, and a template to use with cloud-formation later:
+12. Clone the EC2 Instance to a AIM image, and a template to use with cloud-formation later:
 
-    ![aim image](images/13-aim-image.png)
+    ![aim image](<../images/12-aim-image.png>)
 
     Create a launch instance template, and ensure the AIM is linked to the one `owned by me`. Attach the key-pair, subnet and frontend security group
 
-    ![networking](images/13-template-network.png)
+    ![networking](<../images/12-template-network.png>)
 
 
-14. Test Launching multiple instances.
+13. Test Launching multiple instances.
     
     For now deploy two, ensure auto-assign an elastic ip is enabled.
     
-    ![launch](images/14-launch.png)
+    ![launch](<../images/13-launch.png>)
 
-15. Testing SSH on the template-deployed instance, and access the web interface:
+14. Testing SSH on the template-deployed instance, and access the web interface:
     
-    ![testing ssh](images/15-testing-ssh.png)
+    ![testing ssh](<../images/14-testing-ssh.png>)
 
-16. Setting up Route53 Health Checks - confirming services are coming online.
+15. Setting up Route53 Health Checks - confirming services are coming online.
     
-    ![r53 health checks](images/16-r53-health-checks.png)
+    ![r53 health checks](<../images/15-r53-health-checks.png>)
 
     Create traffic policies, and attach to `mydomain.com`
 
-    ![traffic policies](images/16-r53-traffic-policy.png)
-
+    ![traffic policies](<../images/15-r53-traffic-policy.png>)
 
     The A record is answered by the traffic policy, and the www record is redirected to the A record. So whichever is requested by a client, should always get the answer from the traffic policy.
-    ![traffic policy attached to root of zone](images/16-r53-zone-view.png)
+    
+    ![traffic policy attached to root of zone](<../images/15-r53-zone-view.png>)
 
 
-17. Create 2x event bridge Schedules to stop and start the EC2 Instances.
+16. Create 2x event bridge Schedules to stop and start the EC2 Instances.
 
     Firstly, we need an IAM Polciy with an IAM role attached:
 
-    ![iam policy](images/17-iam-policy.png)
+    ![iam policy](<../images/16-iam-policy.png>)
 
-    ![iam role](images/17-iam-role.png)
+    ![iam role](<../images/16-iam-role.png>)
 
     Then we need to create two event-bridge schedules, to stop and start the ec2 instances.
 
-    ![alt text](images/17-em-schedules.png)
+    ![alt text](<../images/16-em-schedules.png>)
 
     With the following CRON schedules attached start `0 9 ? * 2-6 *` and stop `30 23 ? * 1-7 *`, we end up with:
 
     Stopping:
 
-    ![stopping](images/17-em-stop-dates.png)
+    ![stopping](<../images/16-em-stop-dates.png>)
 
     Starting:
 
-    ![starting](images/17-em-start-dates.png)
+    ![starting](<../images/16-em-start-dates.png>)
 
-18. Quick test with public DNS
+17. Quick test with public DNS
 
     NOTE: for the purposes of this lab, i've not got adminsitrative access over the chosen domain-name, so i added 2x static A-record entries in my windows hosts file.
 
     
-    ![final call](images/18-final-http-call.png)
+    ![final call](<../images/17-final-http-call.png>)
