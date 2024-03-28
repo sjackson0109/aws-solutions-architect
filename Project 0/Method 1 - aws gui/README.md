@@ -5,7 +5,7 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 ## Step-by-step Instructions (GUI)
 0. Start the AWS LAB, and login:
 
-     ![Login](<images/00-Login.png>)
+     ![Login](<../images/00-Login.png>)
 
 1. Navigate to the VPC area, and Create a VPC:
 
@@ -14,46 +14,46 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Create a VPC, with name:`wordpress-vpc`, base-cidr:`10.101.0.0/16`
 
-    ![VPC](<images/01-vpc-create.png>)
+    ![VPC](<../images/01-vpc-create.png>)
 
     Create 2x Public facing subnets, in two different Availability Zones
-    ![Public Subnets](<images/01-vpc-private-subnets.png>)
+    ![Public Subnets](<../images/01-vpc-private-subnets.png>)
 
     Create 2x Private subnets, in two different Availability Zones
-    ![Private Subnets](<images/01-vpc-private-subnets.png>)
+    ![Private Subnets](<../images/01-vpc-private-subnets.png>)
 
     Associate the Private subnets are associated with the correct route-table:
-    ![RT Association](<images/01-vpc-private-subnets-association.png>)
+    ![RT Association](<../images/01-vpc-private-subnets-association.png>)
 
     Resource Map:
 
-    ![Resource Map](<images/01-vpc-resource-map.png>)
+    ![Resource Map](<../images/01-vpc-resource-map.png>)
 
 2. Search for `Key Pairs`. Create a key-pair.
 
     Specifics: Key-Type=`RSA`, Private Key Out: `ppk format`
 
-    ![Key Pairs](<images/02-key-pair.png>)
+    ![Key Pairs](<../images/02-key-pair.png>)
 
 3. Search for Security Groups, Create:
     
     FRONTEND | public-sg:-
       -  Ingress: HTTP/S, SSH
-         ![Frontend Ingress](<images/03-sg-fe-ingress.png>)
+         ![Frontend Ingress](<../images/03-sg-fe-ingress.png>)
 
       -  Egress: NTP, DNS, HTTP/S, MYSQL(10.101.0.0/16)
-         ![Frontend Ingress](<images/03-sg-fe-egress.png>)
+         ![Frontend Ingress](<../images/03-sg-fe-egress.png>)
          
     BACKEND | private-sg:-
       -  Ingress: MySQL:tcp/3306 only
-         ![Backend Ingress](<images/03-sg-be-ingress.png>)
+         ![Backend Ingress](<../images/03-sg-be-ingress.png>)
 
       -  Egress: All Traffic (default)
 
 4. Create an Internet Gateway and attach it to the VPC
    
     Create and Attach an Internet Gateway to the VPC:
-    ![IGW](<images/04-vpc-attach-igw.png>)
+    ![IGW](<../images/04-vpc-attach-igw.png>)
 
 5. Create an RDS CLUSTER
 
@@ -61,53 +61,53 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
  
     Creating the Cluster
     
-    ![Create RDS Cluster](<images/05-rds-1-create.png>)
+    ![Create RDS Cluster](<../images/05-rds-1-create.png>)
 
     Specify the DB Engine (Default)
 
-    ![DB Engine](<images/05-rds-2-engine.png>)
+    ![DB Engine](<../images/05-rds-2-engine.png>)
 
 
     Capture the username and password: `u2PcCz8Z5pj5`
 
-    ![Admin PWD](<images/05-rds-3-admin.png>)
+    ![Admin PWD](<../images/05-rds-3-admin.png>)
 
 
     Specify serverless compute, with enough capacity to run the dev/test instance (2GB RAM x 2 container instances)
 
-    ![Serverless](<images/05-rds-4-serverless.png>)
+    ![Serverless](<../images/05-rds-4-serverless.png>)
 
 
     Specify Multi-Availability-Zone
 
-    ![Multi-AZ](<images/05-rds-5-multi-az.png>)
+    ![Multi-AZ](<../images/05-rds-5-multi-az.png>)
 
     Attach to the existing vpc called `wordpress-vpc`
 
-    ![VPC](<images/05-rds-6-vpc.png>)
+    ![VPC](<../images/05-rds-6-vpc.png>)
 
     Create a new DB Subnet Group
 
-    ![New Subnet Group](<images/05-rds-7-create-db-subnet-group.png>)
+    ![New Subnet Group](<../images/05-rds-7-create-db-subnet-group.png>)
 
     Attach the existing security-group called `backend-sg`
 
-    ![Existing SG](<images/05-rds-8-existing-sg.png>)
+    ![Existing SG](<../images/05-rds-8-existing-sg.png>)
 
 
     Short Summary:
 
-    ![Overall Creation](<images/05-rds-setup.png>)
+    ![Overall Creation](<../images/05-rds-setup.png>)
 
     RDS Instance must have nightly maintenance, including a backup routing:
 
-    ![Backup Status](<images/05-rds-backup-status.png>)
+    ![Backup Status](<../images/05-rds-backup-status.png>)
 
 6. Create an Elastic File System
    
    This is to be used as a data-disk for each EC2 Instance late; however needs creating and then associating with the VPC first:
 
-    ![EFS Creation](<images/06-efs-create.png>)
+    ![EFS Creation](<../images/06-efs-create.png>)
 
 7. Create EC2 Instance
    
