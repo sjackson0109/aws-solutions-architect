@@ -136,8 +136,10 @@ To set up and monitor a WordPress instance for your organisation inside AWS, usi
 The terraform instructions can be found [here](<./Method 0 - terraform/README.md>)
 
 ## Step-by-step Instructions (aws console)
-The terraform instructions can be found [here](<./Method 1 - aws console/README.md>)
+The terraform instructions can be found [here](<./Method 1 - aws gui/README.md>)
 
+## Step-by-step Instructions (aws cli)
+The terraform instructions can be found [here](<./Method 1 - aws cli/README.md>)
 
 
 ## Challange an engineer, question time:

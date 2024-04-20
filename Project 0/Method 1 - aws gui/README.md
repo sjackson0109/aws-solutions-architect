@@ -5,7 +5,7 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 ## Step-by-step Instructions (GUI)
 0. Start the AWS LAB, and login:
 
-     ![Login](<../images/00-Login.png>)
+     ![Login](<./00-Login.png>)
 
 1. Navigate to the VPC area, and Create a VPC:
 
@@ -13,46 +13,46 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Create a VPC, with name:`wordpress-vpc`, base-cidr:`10.101.0.0/16`
 
-    ![VPC](<../images/01-vpc-create.png>)
+    ![VPC](<./01-vpc-create.png>)
 
     Create 2x Public facing subnets, in two different Availability Zones
-    ![Public Subnets](<../images/01-vpc-private-subnets.png>)
+    ![Public Subnets](<./01-vpc-private-subnets.png>)
 
     Create 2x Private subnets, in two different Availability Zones
-    ![Private Subnets](<../images/01-vpc-private-subnets.png>)
+    ![Private Subnets](<./01-vpc-private-subnets.png>)
 
     Associate the Private subnets are associated with the correct route-table:
-    ![RT Association](<../images/01-vpc-private-subnets-association.png>)
+    ![RT Association](<./01-vpc-private-subnets-association.png>)
 
     Resource Map:
 
-    ![Resource Map](<../images/01-vpc-resource-map.png>)
+    ![Resource Map](<./01-vpc-resource-map.png>)
 
 2. Search for `Key Pairs`. Create a key-pair.
 
     Specifics: Key-Type=`RSA`, Private Key Out: `ppk format`
 
-    ![Key Pairs](<../images/02-key-pair.png>)
+    ![Key Pairs](<./02-key-pair.png>)
 
 3. Search for Security Groups, Create:
     
     FRONTEND | public-sg:-
       -  Ingress: HTTP/S, SSH
-         ![Frontend Ingress](<../images/03-sg-fe-ingress.png>)
+         ![Frontend Ingress](<./03-sg-fe-ingress.png>)
 
       -  Egress: NTP, DNS, HTTP/S, MYSQL(10.101.0.0/16)
-         ![Frontend Ingress](<../images/03-sg-fe-egress.png>)
+         ![Frontend Ingress](<./03-sg-fe-egress.png>)
          
     BACKEND | private-sg:-
       -  Ingress: MySQL:tcp/3306 only
-         ![Backend Ingress](<../images/03-sg-be-ingress.png>)
+         ![Backend Ingress](<./03-sg-be-ingress.png>)
 
       -  Egress: All Traffic (default)
 
 4. Create an Internet Gateway and attach it to the VPC
    
     Create and Attach an Internet Gateway to the VPC:
-    ![IGW](<../images/04-vpc-attach-igw.png>)
+    ![IGW](<./04-vpc-attach-igw.png>)
 
 5. Create an RDS CLUSTER
 
@@ -60,53 +60,53 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
  
     Creating the Cluster
     
-    ![Create RDS Cluster](<../images/05-rds-1-create.png>)
+    ![Create RDS Cluster](<./05-rds-1-create.png>)
 
     Specify the DB Engine (Default)
 
-    ![DB Engine](<../images/05-rds-2-engine.png>)
+    ![DB Engine](<./05-rds-2-engine.png>)
 
 
     Capture the username and password: `u2PcCz8Z5pj5`
 
-    ![Admin PWD](<../images/05-rds-3-admin.png>)
+    ![Admin PWD](<./05-rds-3-admin.png>)
 
 
     Specify serverless compute, with enough capacity to run the dev/test instance (2GB RAM x 2 container instances)
 
-    ![Serverless](<../images/05-rds-4-serverless.png>)
+    ![Serverless](<./05-rds-4-serverless.png>)
 
 
     Specify Multi-Availability-Zone
 
-    ![Multi-AZ](<../images/05-rds-5-multi-az.png>)
+    ![Multi-AZ](<./05-rds-5-multi-az.png>)
 
     Attach to the existing vpc called `wordpress-vpc`
 
-    ![VPC](<../images/05-rds-6-vpc.png>)
+    ![VPC](<./05-rds-6-vpc.png>)
 
     Create a new DB Subnet Group
 
-    ![New Subnet Group](<../images/05-rds-7-create-db-subnet-group.png>)
+    ![New Subnet Group](<./05-rds-7-create-db-subnet-group.png>)
 
     Attach the existing security-group called `backend-sg`
 
-    ![Existing SG](<../images/05-rds-8-existing-sg.png>)
+    ![Existing SG](<./05-rds-8-existing-sg.png>)
 
 
     Short Summary:
 
-    ![Overall Creation](<../images/05-rds-setup.png>)
+    ![Overall Creation](<./05-rds-setup.png>)
 
     RDS Instance must have nightly maintenance, including a backup routing:
 
-    ![Backup Status](<../images/05-rds-backup-status.png>)
+    ![Backup Status](<./05-rds-backup-status.png>)
 
 6. Create an Elastic File System
    
    This is to be used as a data-disk for each EC2 Instance late; however needs creating and then associating with the VPC first:
 
-    ![EFS Creation](<../images/06-efs-create.png>)
+    ![EFS Creation](<./06-efs-create.png>)
 
 7. Create EC2 Instance
    
@@ -114,49 +114,49 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Label the EC2 instance
 
-    ![VM Name](<../images/07-ec2-name.png>)
+    ![VM Name](<./07-ec2-name.png>)
 
     Select the AIM image `Ubuntu`, with `x64` based architecture
 
-    ![EC2-OS](<../images/07-ec2-os.png>)
+    ![EC2-OS](<./07-ec2-os.png>)
 
     Ensure the EC2 Instance-Type is `t2.micro`, we don't need any larger a compute instance
 
-    ![EC2-TYPE](<../images/07-ec2-type.png>)
+    ![EC2-TYPE](<./07-ec2-type.png>)
 
     Select the appropriate key-pair for SSH based administration
 
-    ![EC2-Keys](<../images/07-ec2-key-pair.png>)
+    ![EC2-Keys](<./07-ec2-key-pair.png>)
 
     Ensure the `wordpress-vpc` is used, and attach to the `pub-us-east-1a` subnet
 
-    ![EC2-NIC](<../images/07-ec2-core-network.png>)
+    ![EC2-NIC](<./07-ec2-core-network.png>)
 
     Associate with the Security Group `frontend-sg`:
 
-    ![EC2-SG1](<../images/07-ec2-backend-sg.png>)
+    ![EC2-SG1](<./07-ec2-backend-sg.png>)
     
     HUMAN ERROR: I made a mistake here, accidentally mounting the `backend-sg` rather than the `frontend-sg`; so here is the update operation: 
 
-    ![EC2-SG2](<../images/07-ec2-frontend-sg-update.png>)
+    ![EC2-SG2](<./07-ec2-frontend-sg-update.png>)
 
     Mount the encrypted file-system `wordpress-data` to a local path `/mnt/efs/data`
 
-    ![EFS Mount](<../images/07-ec2-efs-mount.png>)
+    ![EFS Mount](<./07-ec2-efs-mount.png>)
 
 8. Prepare the Wordpress database
    
     SSH into the wordpress instance using the public IP address, or EC2 Console.
     
-    ![View Public IP](<../images/08-wp-pip.png>)
+    ![View Public IP](<./10-wp-pip.png>)
 
     Verify network connectivity to the RDS database instance. 
     
-    ![Network Connection to RDS](<../images/08-confirm-network-connectivity-to-db.png>)
+    ![Network Connection to RDS](<./08-confirm-network-connectivity-to-db.png>)
 
     Execute the command `sudo apt install --yes mysql-client-core-8.0` so that we can actually login to RDS with a mysql client. Login using `mysql -h <RDS ENDPOINT NAME> -u rds_user` with the password setup earlier. Create the both the `Wordpress` Database and Username, followed by `Grant all privileges`, `flushing privileges` at the end. 
 
-    ![Create Wordpress DB](<../images/08-create-wp-db.png>)
+    ![Create Wordpress DB](<./08-create-wp-db.png>)
 
     NOTE: I repeated this command using the suffix `with grant option;`. After confirming all the necessary commands, i've subsequently extracted this to a `user_data` first-boot-script for my future EC2 instances.
    
@@ -164,7 +164,7 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Simply execute the `sudo ln -s /mnt/efs/data/html /var/www/html` command:
     
-    ![Sym Links](<../images/09-sym-links-to-efs-disk.png>)
+    ![Sym Links](<./09-sym-links-to-efs-disk.png>)
 
     Note: if Apache was installed before executing this command, there is an error creating the target html link, use this command to fix it, then repeat the above ln-s command: `sudo rm -rf /var/www/html`
 
@@ -176,7 +176,7 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Identifying the SSH endpoint (public ip on the right)
 
-    ![public ip](<../images/10-wp-pip.png>)
+    ![public ip](<./10-wp-pip.png>)
 
     Some of the commands given during the class on this topic, were missing command-line arguments (switches) to silcence the install routines. Thus i took it upon myself to define the entire shell script; here are the commands I manually entered in an SSH console:
 
@@ -222,7 +222,7 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Check the mount point is working:
 
-    ![Mount Point Files](<../images/10-mount-point-files.png>)
+    ![Mount Point Files](<./10-mount-point-files.png>)
 
 11. Configure Wordpress database-connection string, and a handful of other items, using SSH scripts:
 
@@ -262,77 +262,77 @@ The steps described below are to satisfy the tasklist identified for [Project 0]
 
     Visiting the page, to instigate configuration
 
-    ![install](<../images/11-wp-init.png>)
+    ![install](<./11-wp-init.png>)
 
     Completing the setup:
 
-    ![setup](<../images/11-wp-setup.png>)
+    ![setup](<./11-wp-setup.png>)
 
     After saving, the sql service is populated with a database schema, table designs, and a few sample records (hello world article, and of course my `sjackson` user):
 
-    ![started](<../images/11-wp-success.png>)
+    ![started](<./11-wp-success.png>)
 
     Logging in for the first-time:
 
-    ![wp welcome](<../images/11-wp-welcome.png>)
+    ![wp welcome](<./11-wp-welcome.png>)
 
 12. Clone the EC2 Instance to a AIM image, and a template to use with cloud-formation later:
 
-    ![aim image](<../images/12-aim-image.png>)
+    ![aim image](<./12-aim-image.png>)
 
     Create a launch instance template, and ensure the AIM is linked to the one `owned by me`. Attach the key-pair, subnet and frontend security group
 
-    ![networking](<../images/12-template-network.png>)
+    ![networking](<./12-template-network.png>)
 
 
 13. Test Launching multiple instances.
     
     For now deploy two, ensure auto-assign an elastic ip is enabled.
     
-    ![launch](<../images/13-launch.png>)
+    ![launch](<./13-launch.png>)
 
 14. Testing SSH on the template-deployed instance, and access the web interface:
     
-    ![testing ssh](<../images/14-testing-ssh.png>)
+    ![testing ssh](<./14-testing-ssh.png>)
 
 15. Setting up Route53 Health Checks - confirming services are coming online.
     
-    ![r53 health checks](<../images/15-r53-health-checks.png>)
+    ![r53 health checks](<./15-r53-health-checks.png>)
 
     Create traffic policies, and attach to `mydomain.com`
 
-    ![traffic policies](<../images/15-r53-traffic-policy.png>)
+    ![traffic policies](<./15-r53-traffic-policy.png>)
 
     The A record is answered by the traffic policy, and the www record is redirected to the A record. So whichever is requested by a client, should always get the answer from the traffic policy.
     
-    ![traffic policy attached to root of zone](<../images/15-r53-zone-view.png>)
+    ![traffic policy attached to root of zone](<./15-r53-zone-view.png>)
 
 
 16. Create 2x event bridge Schedules to stop and start the EC2 Instances.
 
     Firstly, we need an IAM Polciy with an IAM role attached:
 
-    ![iam policy](<../images/16-iam-policy.png>)
+    ![iam policy](<./16-iam-policy.png>)
 
-    ![iam role](<../images/16-iam-role.png>)
+    ![iam role](<./16-iam-role.png>)
 
     Then we need to create two event-bridge schedules, to stop and start the ec2 instances.
 
-    ![alt text](<../images/16-em-schedules.png>)
+    ![alt text](<./16-em-schedules.png>)
 
     With the following CRON schedules attached start `0 9 ? * 2-6 *` and stop `30 23 ? * 1-7 *`, we end up with:
 
     Stopping:
 
-    ![stopping](<../images/16-em-stop-dates.png>)
+    ![stopping](<./16-em-stop-dates.png>)
 
     Starting:
 
-    ![starting](<../images/16-em-start-dates.png>)
+    ![starting](<./16-em-start-dates.png>)
 
 17. Quick test with public DNS
 
     NOTE: for the purposes of this lab, i've not got adminsitrative access over the chosen domain-name, so i added 2x static A-record entries in my windows hosts file.
 
     
-    ![final call](<../images/17-final-http-call.png>)
+    ![final call](<./17-final-http-call.png>)
